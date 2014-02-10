@@ -43,6 +43,7 @@ zSquared.tiledscene = function( z2 )
 
 		// create rendering system
 		this.force_canvas = false;
+		// TODO: let override force_canvas & priority for rendering system?
 		this.renderer = z2.createRenderingSystem( this.canvas, this.view, this.force_canvas );
 
 		// queue the Tiled map json

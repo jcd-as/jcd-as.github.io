@@ -70,13 +70,44 @@ zSquared.view = function( z2 )
 	};
 
 	/** Update the view for the frame
-	 * @function z2.View.update
+	 * @function z2.View#update
+	 * @memberof z2.View
 	 */
 	z2.View.prototype.update = function()
 	{
 		// adjust for follow-mode
 		if( this.follow_mode !== z2.FOLLOW_MODE_NONE )
 			this._follow();
+	};
+
+	/** Add a (Pixi DisplayObject) to the view
+	 * @function z2.View#add
+	 * @memberof z2.View
+	 * @arg {Pixi.DisplayObject} obj The object to add
+	 * @arg {boolean} [fixed] Is the object fixed to the camera or not? fixed
+	 * objects do not move (e.g. a HUD or life-meter). default is false
+	 */
+	z2.View.prototype.add = function( obj, fixed )
+	{
+		if( fixed )
+			this.scene.stage.addChild( obj );
+		else
+			this.doc.addChild( obj );
+	};
+
+	/** Remove a (Pixi DisplayObject) from the view
+	 * @function z2.View#add
+	 * @memberof z2.View
+	 * @arg {Pixi.DisplayObject} obj The object to remove
+	 * @arg {boolean} [fixed] Is the object fixed to the camera or not? fixed
+	 * objects do not move (e.g. a HUD or life-meter). default is false
+	 */
+	z2.View.prototype.remove = function( obj, fixed )
+	{
+		if( fixed )
+			this.scene.stage.removeChild( obj );
+		else
+			this.doc.removeChild( obj );
 	};
 
 	Object.defineProperty( z2.View.prototype, 'follow_mode',

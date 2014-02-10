@@ -3,12 +3,13 @@
 // asset loader class/module for zed-squared
 //
 // TODO:
-// - support 'base' URL for loading
+// x support 'base' URL for loading
 // - support progress indicator callback
 // - support pre-loads
 // x support text files
 // x support json files
 // x support audio files
+// - support bitmap fonts (.fnt files)
 // - use browser type to load appropriate audio files (i.e. ogg for firefox)
 // - 
 
@@ -38,8 +39,18 @@ zSquared.loader = function( z2 )
 		txt : 'text',
 
 		// json files
-		json : 'json'
+		json : 'json',
+
+		// bitmap font files
+		fnt : 'font'
 	};
+
+	var baseUrl = '';
+	var imgBaseUrl = '';
+	var sndBaseUrl = '';
+	var txtBaseUrl = '';
+	var jsonBaseUrl = '';
+	var fontBaseUrl = '';
 
 	// list of queued asset key/url pairs
 	var assetQueue = [];
@@ -58,6 +69,7 @@ zSquared.loader = function( z2 )
 	// load an image
 	function loadImage( key, url, onComplete, onError, that )
 	{
+		url = baseUrl + imgBaseUrl + url;
 		var img = new Image();
 		img.onload = function(){ onComplete.call( that, key, img ); };
 		img.onerror = onError;
@@ -67,6 +79,7 @@ zSquared.loader = function( z2 )
 	// load a text file
 	function loadText( key, url, onComplete, onError, that )
 	{
+		url = baseUrl + txtBaseUrl + url;
 		var xhr = new XMLHttpRequest();
 		xhr.open( "GET", url, true );
 		xhr.responseType = "text";
@@ -78,6 +91,7 @@ zSquared.loader = function( z2 )
 	// load a json file
 	function loadJson( key, url, onComplete, onError, that )
 	{
+		url = baseUrl + jsonBaseUrl + url;
 		var xhr = new XMLHttpRequest();
 		xhr.open( "GET", url, true );
 		xhr.responseType = "text";
@@ -94,6 +108,7 @@ zSquared.loader = function( z2 )
 	// load an audio file
 	function loadAudio( key, url, onComplete, onError, that )
 	{
+		url = baseUrl + sndBaseUrl + url;
 		var xhr = new XMLHttpRequest();
 		xhr.open( "GET", url, true );
 		xhr.responseType = "arraybuffer";
@@ -110,12 +125,78 @@ zSquared.loader = function( z2 )
 		xhr.send();
 	}
 
+	// load a bitmap font file
+	// (xml format from http://www.angelcode.com/products/bmfont/)
+	function loadFont( key, url, onComplete, onError, that )
+	{
+		// use Pixi to load the font
+		url = baseUrl + fontBaseUrl + url;
+		var fontsToLoad = [url];
+		var loader = new PIXI.AssetLoader( fontsToLoad );
+		loader.onComplete = onComplete;
+		loader.onError = onError;
+		loader.load();
+	}
 
 	// public module interface:
 	/** Loader namespace
 	 * @namespace z2.loader */
 	z2.loader = 
 	{
+		/** Set base URL
+		 * @method z2.loader#setBaseUrl
+		 * @arg {string} base base URL
+		 */
+		setBaseUrl : function( base )
+		{
+			baseUrl = base;
+		},
+
+		/** Set image base URL
+		 * @method z2.loader#setImageBaseUrl
+		 * @arg {string} base base URL
+		 */
+		setImageBaseUrl : function( base )
+		{
+			imgBaseUrl = base;
+		},
+
+		/** Set audio base URL
+		 * @method z2.loader#setAudioUrl
+		 * @arg {string} base base URL
+		 */
+		setAudioBaseUrl : function( base )
+		{
+			sndBaseUrl = base;
+		},
+
+		/** Set text base URL
+		 * @method z2.loader#setTextBaseUrl
+		 * @arg {string} base base URL
+		 */
+		setTextBaseUrl : function( base )
+		{
+			txtBaseUrl = base;
+		},
+
+		/** Set JSON base URL
+		 * @method z2.loader#setJsonBaseUrl
+		 * @arg {string} base base URL
+		 */
+		setJsonBaseUrl : function( base )
+		{
+			jsonBaseUrl = base;
+		},
+
+		/** Set font base URL
+		 * @method z2.loader#setFontBaseUrl
+		 * @arg {string} base base URL
+		 */
+		setFontBaseUrl : function( base )
+		{
+			fontBaseUrl = base;
+		},
+
 		/** Get an asset
 		 * @method z2.loader#getAsset
 		 * @arg {string} key Asset key (friendly name)
@@ -205,10 +286,7 @@ zSquared.loader = function( z2 )
 					for( var i = 0; i < data.tilesets.length; i++ )
 					{
 						remaining++;
-//						loadImage( data.tilesets[i].name, data.tilesets[i].image, loaded, failed, that );
-						// TODO: shouldn't be hard-coding assets paths
-						var path = "assets/img/" + data.tilesets[i].image;
-						loadImage( data.tilesets[i].name, path, loaded, failed, that );
+						loadImage( data.tilesets[i].name, data.tilesets[i].image, loaded, failed, that );
 					}
 					// imagelayer images
 					for( i = 0; i < data.layers.length; i++ )
@@ -216,8 +294,7 @@ zSquared.loader = function( z2 )
 						if( data.layers[i].type == 'imagelayer' )
 						{
 							remaining++;
-//							loadImage( data.layers[i].name, data.layers[i].image, loaded, failed, that );
-							var path = "assets/img/" + data.layers[i].name + ".png";
+							var path = data.layers[i].name + ".png";
 							loadImage( data.layers[i].name, path, loaded, failed, that );
 						}
 					}
@@ -261,8 +338,12 @@ zSquared.loader = function( z2 )
 					case 'tiled':
 						loadTiledJson( key, url, loaded, failed, that );
 						break;
+					case 'font':
+						loadFont( key, url, loaded, failed, that );
+						break;
 					case 'unknown':
-						// TODO: impl
+						console.warn( "unknown kind of asset: " + url );
+						failed.call( that );
 						break;
 					}
 				}

@@ -3,16 +3,15 @@
 // Components and Systems for 2d tilemapped games
 //
 // TODO:
-// - change the way in which the Layer Entites are added to the mgr, so
-// that sprites can appear *between* layers (OR add support for loading sprites
-// from Tiled object layers and load/create/add them at the same time as the Layers)
 // - can we separate the need for the view from the map? (this would allow
 // the same map to (conceptually anyway) have different views. e.g. a main view
 // and a 'minimap' view
 // - BUG (?): if you have a layer that scrolls out of bounds (like a
 // parallax foreground layer that moves much faster than the 'main' layer),
 // probably the layer should just STOP moving (i.e. just 'stick' at the edge)
-// -
+// - BUG: several pixels of blank screen show when you scroll around (in
+// most/all(?) render methods)
+// - 
 
 
 zSquared.tilemap = function( z2 )
@@ -75,6 +74,9 @@ zSquared.tilemap = function( z2 )
 		// image layers
 		this.imageLayers = [];
 
+		// object groups (arrays of objects)
+		this.objectGroups = [];
+
 		// collision map
 		this.collisionMap = null;
 
@@ -105,8 +107,14 @@ zSquared.tilemap = function( z2 )
 		this.width = map.width * this.tileWidth;
 		this.height = map.height * this.tileHeight;
 
-		this.worldWidth = +map.properties.width;
-		this.worldHeight = +map.properties.height;
+		if( map.properties && map.properties.width )
+			this.worldWidth = +map.properties.width;
+		else
+			this.worldWidth = this.width;
+		if( map.properties && map.properties.height )
+			this.worldHeight = +map.properties.height;
+		else
+			this.worldHeight = this.height;
 
 		// load each tileset
 		for( i = 0; i < map.tilesets.length; i++ )
@@ -128,24 +136,25 @@ zSquared.tilemap = function( z2 )
 
 		var l;
 
-		// load each tile layer
+		// load each layer
 		for( i = 0; i < map.layers.length; i++ )
 		{
 			var lyr = map.layers[i];
 			if( lyr.type == 'tilelayer' )
 			{
-				l = new z2.TileLayer( this );
-				l.load( lyr );
-				if( lyr.name === main_layer )
-					this.mainLayer = l;
-				// don't add the layer if it isn't visible
-				// TODO: should we still add it but not render it?
+				// if the layer is visible, create a tile layer for it
 				if( lyr.visible )
+				{
+					l = new z2.TileLayer( this );
+					l.load( lyr );
+					if( lyr.name === main_layer )
+						this.mainLayer = l;
 					this.layers.push( l );
+				}
 				// if the layer is solid, create the collision map from it
 				if( lyr.properties && lyr.properties.solid )
 					// TODO: support multiple tilesets
-					this._buildCollisionMap( l, map.tilesets[0] );
+					this._buildCollisionMap( lyr.data, map.tilesets[0] );
 			}
 			// load image layers
 			else if( lyr.type == 'imagelayer' )
@@ -156,12 +165,12 @@ zSquared.tilemap = function( z2 )
 			// load object layers
 			else if( lyr.type == 'objectgroup' )
 			{
-				createObjects( lyr );
+				this.objectGroups.push( createObjects( lyr ) );
 			}
 		}
 	};
 
-	z2.TileMap.prototype._buildCollisionMap = function( layer, tileset )
+	z2.TileMap.prototype._buildCollisionMap = function( data, tileset )
 	{
 		// TODO: support multiple tilesets
 		var solid_tiles = [];
@@ -172,7 +181,7 @@ zSquared.tilemap = function( z2 )
 			if( tileset.tileproperties[key].solid )
 				solid_tiles.push( +key );
 		}
-		this.collisionMap = z2.buildCollisionMap( layer.data, this.widthInTiles, this.heightInTiles, solid_tiles );
+		this.collisionMap = z2.buildCollisionMap( data, this.widthInTiles, this.heightInTiles, solid_tiles );
 	};
 
 	/** Start the scene running
@@ -182,12 +191,6 @@ zSquared.tilemap = function( z2 )
 	z2.TileMap.prototype.start = function( mgr )
 	{
 		var i;
-		if( render_method !== RENDER_PIXI_ALL_SPR )
-		{
-			// add the layers' sprites to the stage
-			for( i = 0; i < this.layers.length; i++ )
-				this.view.scene.stage.addChild( this.layers[i].sprite );
-		}
 
 		// create Entities for the TileLayers
 		for( i = 0; i < this.layers.length; i++ )
@@ -202,7 +205,6 @@ zSquared.tilemap = function( z2 )
 		{
 			var ilc = z2.imageLayerFactory.create( {layer: this.imageLayers[i]} );
 			var ile = mgr.createEntity( [z2.renderableFactory, ilc] );
-//			this.imageLayerEntities.push( ile );
 		}
 	};
 
@@ -229,35 +231,47 @@ zSquared.tilemap = function( z2 )
 	 * @constructor
 	 * @arg {z2.TileMap} map The tile map
 	 */
-	z2.TileLayer = function( map )
+	z2.TileLayer = function( map, visible )
 	{
 		// reference to the TileMap that contains the layer
 		this.map = map;
 
-		if( render_method == RENDER_SIMPLE )
-		{
-			// create a canvas for this layer to be drawn on
-			this.canvasWidth = map.viewWidth;
-			this.canvasHeight = map.viewHeight;
+		// the factor by which the movement (scrolling) of this layer differs
+		// from the "main" map. e.g. '2' would be twice as fast, '0.5' would be
+		// half as fast
+		this.scrollFactorX = 1;
+		this.scrollFactorY = 1;
+
+		if( render_method == RENDER_SIMPLE || render_method == RENDER_OPT_PAGES )
+		{	
+			if( render_method == RENDER_SIMPLE )
+			{
+				// create a canvas for this layer to be drawn on
+				this.canvasWidth = map.viewWidth;
+				this.canvasHeight = map.viewHeight;
+			}
+			else if( render_method == RENDER_OPT_PAGES )
+			{
+				// create two canvases for this layer to be drawn on
+				this.canvasWidth = map.viewWidth + map.tileWidth;
+				this.canvasHeight = map.viewHeight + map.tileHeight;
+
+				this.backCanvas = z2.createCanvas( this.canvasWidth, this.canvasHeight );
+				this.backContext = this.backCanvas.getContext( '2d' );
+
+				// vars for tracking the previous frame position
+				this._prev_x = NaN;
+				this._prev_tx = NaN;
+				this._prev_ty = NaN;
+			}
 			this.canvas = z2.createCanvas( this.canvasWidth, this.canvasHeight );
 			this.context = this.canvas.getContext( '2d' );
-		}
-		else if( render_method == RENDER_OPT_PAGES )
-		{
-			// create two canvases for this layer to be drawn on
-			this.canvasWidth = map.viewWidth + map.tileWidth;
-			this.canvasHeight = map.viewHeight + map.tileHeight;
 
-			this.canvas = z2.createCanvas( this.canvasWidth, this.canvasHeight );
-			this.context = this.canvas.getContext( '2d' );
-
-			this.backCanvas = z2.createCanvas( this.canvasWidth, this.canvasHeight );
-			this.backContext = this.backCanvas.getContext( '2d' );
-
-			// vars for tracking the previous frame position
-			this._prev_x = NaN;
-			this._prev_tx = NaN;
-			this._prev_ty = NaN;
+			this.baseTexture = new PIXI.BaseTexture( this.canvas );
+			this.frame = new PIXI.Rectangle( 0, 0, this.canvas.width, this.canvas.height );
+			this.texture = new PIXI.Texture( this.baseTexture );
+			this.sprite = new PIXI.Sprite( this.texture );
+			map.view.add( this.sprite );
 		}
 		else if( render_method == RENDER_PIXI_SPR || render_method == RENDER_OPT_PIXI_SPR )
 		{
@@ -288,12 +302,14 @@ zSquared.tilemap = function( z2 )
 			this.renderTexture.setFrame( this.frame );
 			this.sprite = new PIXI.Sprite( this.renderTexture );
 			map.view.scene.stage.addChild( this.sprite );
+			map.view.add( this.sprite );
 
 			this._prevTx = -1;
 			this._prevTy = 0;
 		}
 		else if( render_method == RENDER_PIXI_ALL_SPR )
 		{
+			// TODO: we shouldn't be doing this if the layer is not visible...
 			this.canvasWidth = map.viewWidth;
 			this.canvasHeight = map.viewHeight;
 			this.frame = new PIXI.Rectangle( 0, 0, this.canvasWidth, this.canvasHeight );
@@ -304,22 +320,7 @@ zSquared.tilemap = function( z2 )
 
 			this.tileSprites = [];
 
-			map.view.scene.stage.addChild( this.doc );
-		}
-
-		// the factor by which the movement (scrolling) of this layer differs
-		// from the "main" map. e.g. '2' would be twice as fast, '0.5' would be
-		// half as fast
-		this.scrollFactorX = 1;
-		this.scrollFactorY = 1;
-
-		// PIXI stuff
-		if( render_method == RENDER_SIMPLE || render_method == RENDER_OPT_PAGES )
-		{	
-			this.baseTexture = new PIXI.BaseTexture( this.canvas );
-			this.frame = new PIXI.Rectangle( 0, 0, this.canvas.width, this.canvas.height );
-			this.texture = new PIXI.Texture( this.baseTexture );
-			this.sprite = new PIXI.Sprite( this.texture );
+			map.view.add( this.doc );
 		}
 	};
 
@@ -441,6 +442,9 @@ zSquared.tilemap = function( z2 )
 		// so we have to update it ourselves:
 		if( PIXI.defaultRenderer.renderSession.gl )
 			PIXI.updateWebGLTexture( this.baseTexture, PIXI.defaultRenderer.renderSession.gl );
+
+		this.sprite.position.x = 0 | (viewx - this.map.viewWidth/2);
+		this.sprite.position.y = 0 | (viewy - this.map.viewHeight/2);
 	};
 
 	z2.TileLayer.prototype.renderCanvasOpt = function( viewx, viewy )
@@ -724,6 +728,9 @@ zSquared.tilemap = function( z2 )
 		// so we have to update it ourselves:
 		if( PIXI.defaultRenderer.renderSession.gl )
 			PIXI.updateWebGLTexture( this.baseTexture, PIXI.defaultRenderer.renderSession.gl );
+
+		this.sprite.position.x = 0 | (viewx - this.map.viewWidth/2);
+		this.sprite.position.y = 0 | (viewy - this.map.viewHeight/2);
 	};
 
 	z2.TileLayer.prototype.renderPixiRT = function( viewx, viewy )
@@ -785,12 +792,12 @@ zSquared.tilemap = function( z2 )
 
 		// render the tile sprites' doc to the render texture
 		// (clearing the render texture first)
-//		var px = -(x - (orig_tx * this.map.tileWidth));
-//		var py = -(y - (orig_ty * this.map.tileHeight));
-//		this.renderTexture.render( this.doc, {x:px,y:py}, true );
-		this.sprite.position.x = -(x - (orig_tx * this.map.tileWidth));
-		this.sprite.position.y = -(y - (orig_ty * this.map.tileHeight));
-		this.renderTexture.render( this.doc, null, true );
+		var px = -(x - (orig_tx * this.map.tileWidth));
+		var py = -(y - (orig_ty * this.map.tileHeight));
+		this.renderTexture.render( this.doc, {x:px,y:py}, true );
+
+		this.sprite.position.x = 0 | (viewx - this.map.viewWidth/2);
+		this.sprite.position.y = 0 | (viewy - this.map.viewHeight/2);
 	};
 
 	z2.TileLayer.prototype.renderPixiRTOpt = function( viewx, viewy )
@@ -873,12 +880,11 @@ zSquared.tilemap = function( z2 )
 		this._prev_ty = orig_ty;
 
 		// set the offset into the render texture
-//		var px = -(x - (orig_tx * this.map.tileWidth));
-//		var py = -(y - (orig_ty * this.map.tileHeight));
-//		this.renderTexture.render( this.doc, {x:px,y:py}, true );
-		this.sprite.position.x = -(x - (orig_tx * this.map.tileWidth));
-		this.sprite.position.y = -(y - (orig_ty * this.map.tileHeight));
-		this.renderTexture.render( this.doc, null, true );
+		var px = -(x - (orig_tx * this.map.tileWidth));
+		var py = -(y - (orig_ty * this.map.tileHeight));
+		this.renderTexture.render( this.doc, {x:px,y:py}, true );
+		this.sprite.position.x = 0 | (viewx - this.map.viewWidth/2);
+		this.sprite.position.y = 0 | (viewy - this.map.viewHeight/2);
 	};
 
 	// "brute force" renderer - one sprite for each tile in each layer, mark
@@ -911,8 +917,10 @@ zSquared.tilemap = function( z2 )
 		
 		// move the doc (group) to viewx, viewy
 		// (truncate positions down to 32 bit integer)
-		this.doc.position.x = 0 | (-x);
-		this.doc.position.y = 0 | (-y);
+		var vx = viewx - this.map.viewWidth/2;
+		var vy = viewy - this.map.viewHeight/2;
+		this.doc.position.x = 0 | (vx - (vx * this.scrollFactorX));
+		this.doc.position.y = 0 | (vy - (vy * this.scrollFactorY));
 	};
 
 	/** Render the tilemap to its canvas
@@ -948,38 +956,12 @@ zSquared.tilemap = function( z2 )
 
 		// Pixi stuff
 		this.baseTexture = new PIXI.BaseTexture( img );
-//		this.frame = new PIXI.Rectangle( 0, 0, this.canvas.width, this.canvas.height );
 		this.texture = new PIXI.Texture( this.baseTexture );
 		this.sprite = new PIXI.Sprite( this.texture );
-
-//		this.scrollFactorX = 1;
-//		this.scrollFactorY = 1;
-//
-//		if( lyr.properties )
-//		{
-//			this.scrollFactorX = lyr.properties.scrollFactorX ? +lyr.properties.scrollFactorX : 1;
-//			this.scrollFactorY = lyr.properties.scrollFactorY ? +lyr.properties.scrollFactorY : 1;
-//		}
-
-		// size of main layer, in pixels
-//		var w = this.world_width;
-//		var h = this.world_height;
-//		// size of the background layer, in pixels
-//		var camera_max_x = w - Nadion.VIEW_WIDTH;
-//		var camera_max_y = h - Nadion.VIEW_HEIGHT;
-//
-//		// set scroll factor based on scale (sizes):
-//		if( camera_max_x !== 0 )
-//			sx = (bg.width - Nadion.VIEW_WIDTH) / camera_max_x;
-//		if( camera_max_y !== 0 )
-//			sy = (bg.height - Nadion.VIEW_HEIGHT) / camera_max_y;
-
 		
 		// size of main layer, in pixels
 		var w = map.worldWidth;
 		var h = map.worldHeight;
-//		var w = 2048;
-//		var h = 512;
 
 		// size of the background layer, in pixels
 		var camera_max_x = w - map.view.width;
@@ -992,25 +974,26 @@ zSquared.tilemap = function( z2 )
 			this.scrollFactorY = (img.height - map.view.height) / camera_max_y;
 
 		// add the sprite to Pixi
-		map.view.scene.stage.addChild( this.sprite );
+		map.view.add( this.sprite );
 	};
 
 	z2.ImageLayer.prototype.render = function( viewx, viewy )
 	{
 		// view.x/y is the *center* not upper left
-		var x = 0 | ((viewx - this.map.viewWidth/2)*this.scrollFactorX);
-		var y = 0 | ((viewy - this.map.viewHeight/2)*this.scrollFactorY);
+		var vx = viewx - this.map.viewWidth/2;
+		var vy = viewy - this.map.viewHeight/2;
 
 		// move the sprite to viewx, viewy
 		// (truncate positions down to 32 bit integer)
-		this.sprite.position.x = 0 | (-x);
-		this.sprite.position.y = 0 | (-y);
+		this.sprite.position.x = 0 | (vx - (vx * this.scrollFactorX));
+		this.sprite.position.y = 0 | (vy - (vy * this.scrollFactorY));
 	};
 
 	/////////////////////////////////////////////////////////////////////////
 	// function to create objects for a Tiled object layer
 	function createObjects( layer )
 	{
+		var objects = [];
 		// create an entity for each object
 		for( var i = 0; i < layer.objects.length; i++ )
 		{
@@ -1019,12 +1002,12 @@ zSquared.tilemap = function( z2 )
 			var factory = z2[obj.type];
 			if( !factory )
 			{
-//				throw new Error( "No factory method found for object type: " + obj.type );
 				console.log( "No factory method found for object type: " + obj.type );
 				continue;
 			}
-			factory( obj );
+			objects.push( factory( obj ) );
 		}
+		return objects;
 	}
 
 
