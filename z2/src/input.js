@@ -3,14 +3,16 @@
 // input module for zed-squared
 //
 // TODO:
-// - keyboard
-// - events on keypress
-// - track time keys are down
+// x keyboard
+// ? events on keypress ?
+// ? track time keys are down
 // - mouse
 // - touchscreen basics
 // - touchscreen 2d platformer controls (2-way, 2 buttons)
 // - touchscreen 2d overhead controls (4-way, 2 buttons)
 // - touchscreen 'joypad'
+// - 'down' images for touchscreen buttons
+// - 'gutter' between touchscreen buttons ?
 // - 
 
 "use strict";
@@ -20,6 +22,10 @@ zSquared.input = function( z2 )
 //	z2.require( [] );
 
 	// TODO: implement
+
+	/////////////////////////////////////////////////////////////////////////
+	// keyboard functionality
+	/////////////////////////////////////////////////////////////////////////
 
 	/** Keyboard object
 	 * @namespace z2.kbd
@@ -226,6 +232,116 @@ zSquared.input = function( z2 )
 		DELETE: 46,
 		HELP: 47,
 		NUM_LOCK: 144
+	};
+
+
+	/////////////////////////////////////////////////////////////////////////
+	// touchscreen functionality
+	/////////////////////////////////////////////////////////////////////////
+
+	/**
+	/** Touchscreen controls object
+	 * @namespace z2.touch
+	 */
+	var hasTouch = !!('ontouchstart' in window);
+	z2.touch = 
+	{
+		// pixi objects for buttons
+		numButtons : 0,
+		buttons : [],
+		buttonDim : 0,
+
+		buttonsPressed : [],
+
+		init : function( num_buttons )
+		{
+//			if( !hasTouch ) return;
+			this.numbuttons = num_buttons;
+			this.buttonDim = game.scene.view.width / num_buttons;
+		},
+
+		addButton : function( image )
+		{
+//			if( !hasTouch ) return;
+			
+			// if we're not passed an image, make an 'empty' button
+			if( !image )
+			{
+				this.buttons.push( null );
+				this.buttonsPressed.push( false );
+				return;
+			}
+
+			// TODO: impl
+			var idx = this.buttons.length;
+			
+			var basetexture = new PIXI.BaseTexture( image );
+			var texture = new PIXI.Texture( basetexture );
+			var button = new PIXI.Sprite( texture );
+
+			button.position.x = idx * this.buttonDim;
+			button.position.y = game.scene.view.height - this.buttonDim;
+			button.width = this.buttonDim;
+			button.height = this.buttonDim;
+
+			button.alpha = 0.25;
+
+			// this doesn't seem to work:
+//			button.hitArea = new PIXI.Rectangle( 0, 0, 1, this.numButtons );
+
+			button.setInteractive( true );
+
+			// set events
+			// (capture buttonsPressed array for closure)
+			var bp = this.buttonsPressed;
+			button.mousedown = button.touchstart = function( data )
+			{
+				bp[idx] = true;
+			};
+			button.mouseup = button.mouseout = button.touchendoutside = button.touchend = function( data )
+			{
+				bp[idx] = false;
+			};
+
+			// add it to the view
+			game.scene.view.add( button, true );
+
+			this.buttons.push( button );
+			this.buttonsPressed.push( false );
+		},
+
+		isButtonDown : function( index )
+		{
+			return !!this.buttonsPressed[index];
+		},
+
+		hideButtons : function()
+		{
+			for( var i = 0; i < this.buttons.length; i++ )
+			{
+				this.buttons[i].visible = false;
+			}
+		},
+
+		showButtons : function()
+		{
+			for( var i = 0; i < this.buttons.length; i++ )
+			{
+				this.buttons[i].visible = false;
+			}
+		},
+
+		destroy : function()
+		{
+			// remove all the Pixi items
+			for( var i = 0; i < this.buttons.length; i++ )
+				game.scene.view.remove( this.buttons[i] );
+			// reset
+			this.buttons = null;
+			this.buttonsPressed = null;
+			this.numButtons = 0;
+			this.buttonDim = 0;
+		}
 	};
 };
 

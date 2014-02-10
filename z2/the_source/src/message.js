@@ -57,8 +57,8 @@ zSquared.message = function( z2 )
 		game.scene.view.add( bg, true );
 
 		var txt = new PIXI.BitmapText( z2.wrapText( text, 35 ), {font: 'Open_Sans', align: 'center'} );
-		txt.position.x = game.scene.view.width/2 - txt.width/2;
-		txt.position.y = game.scene.view.height/2 - txt.height/2;
+		txt.position.x = game.scene.view.width/2 - txt.textWidth/2;
+		txt.position.y = game.scene.view.height/2 - txt.textHeight/2;
 		game.scene.view.add( txt, true );
 
 		var msg = z2.messageFactory.create( {text: txt, bg: bg} );

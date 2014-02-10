@@ -87,6 +87,12 @@ var level_one =
 
 		z2.loader.queueAsset( 'font', 'open_sans_italic_20.fnt' );
 
+		// touchscreen control images
+		z2.loader.queueAsset( 'left', 'button_left.png' );
+		z2.loader.queueAsset( 'right', 'button_right.png' );
+		z2.loader.queueAsset( 'circle', 'button_circle.png' );
+		z2.loader.queueAsset( 'square', 'button_square.png' );
+
 		// pre-create items that need to be in-place *before* maps and sprites
 		// are created
 		game.input = z2.inputFactory.create();

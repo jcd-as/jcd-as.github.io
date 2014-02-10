@@ -37,6 +37,14 @@ zSquared.inputreceiver = function( z2 )
 				z2.kbd.addKey( z2.kbd.LEFT );
 				z2.kbd.addKey( z2.kbd.RIGHT );
 				z2.kbd.addKey( z2.kbd.SPACEBAR );
+
+				// add touchscreen buttons
+				z2.touch.init( 5 );
+				z2.touch.addButton( z2.loader.getAsset( 'left' ) );
+				z2.touch.addButton( z2.loader.getAsset( 'right' ) );
+				z2.touch.addButton( z2.loader.getAsset( null ) );
+				z2.touch.addButton( z2.loader.getAsset( 'circle' ) );
+				z2.touch.addButton( z2.loader.getAsset( 'square' ) );
 			},
 			update: function( e, dt )
 			{
@@ -58,6 +66,17 @@ zSquared.inputreceiver = function( z2 )
 					input.left = true;
 				else if( z2.kbd.isDown( z2.kbd.RIGHT ) )
 					input.right = true;
+
+				// check touchscreen
+				if( z2.touch.isButtonDown( 0 ) )
+					input.left = true;
+				else if( z2.touch.isButtonDown( 1 ) )
+					input.right = true;
+				// TODO: get button up, not currently pressed
+				if( z2.touch.isButtonDown( 3 ) )
+					input.action = true;
+				if( z2.touch.isButtonDown( 4 ) )
+					input.jump = true;
 
 				// refresh the kbd
 				z2.kbd.refresh();
