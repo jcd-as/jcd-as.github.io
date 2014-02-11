@@ -39,7 +39,7 @@ zSquared.inputreceiver = function( z2 )
 				z2.kbd.addKey( z2.kbd.SPACEBAR );
 
 				// add touchscreen buttons
-				z2.touch.init( 5 );
+				z2.touch.start( 5 );
 				z2.touch.addButton( z2.loader.getAsset( 'left' ) );
 				z2.touch.addButton( z2.loader.getAsset( 'right' ) );
 				z2.touch.addButton( z2.loader.getAsset( null ) );
