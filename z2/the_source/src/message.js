@@ -27,7 +27,7 @@ zSquared.message = function( z2 )
 		{
 			update: function( e, dt )
 			{
-				var input = e.getComponent( z2.inputFactory.mask );
+				var input = e.getComponent( z2.inputFactory );
 				// dismiss on keystroke
 				if( input.action ||
 					input.jump ||
@@ -35,7 +35,7 @@ zSquared.message = function( z2 )
 					input.right )
 				{
 					// remove from Pixi
-					var msg = e.getComponent( z2.messageFactory.mask );
+					var msg = e.getComponent( z2.messageFactory );
 					game.scene.view.remove( msg.text, true );
 					game.scene.view.remove( msg.bg, true );
 					// remove from ECS manager

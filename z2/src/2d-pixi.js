@@ -34,6 +34,9 @@ zSquared['2d'] = function( z2 )
 	/** Component Factory for 2d fill type */
 //	z2.fillFactory = z2.createComponentFactory( {fill: '#ffffff'} );
 
+	/** Component to indicate whether an entity is active of not */
+	z2.activeFactory = z2.createComponentFactory( {active:true} );
+
 	/** Component Factory for 2d position */
 	z2.positionFactory = z2.createComponentFactory( {x: 0, y: 0} );
 
@@ -58,11 +61,8 @@ zSquared['2d'] = function( z2 )
 	/** Component Factory for 2d radius */
 	z2.radiusFactory = z2.createComponentFactory( {radius:0} );
 
-	/** Component Factory for 2d transform */
-	z2.transformFactory = z2.createComponentFactory( {xform: null, scene_x: 0, scene_y:0} );
-
 	/** Component Factory for root (non-grouped) 2d transforms*/
-	z2.rootTransformFactory = z2.createComponentFactory();
+//	z2.rootTransformFactory = z2.createComponentFactory();
 
 	/** Component Factory for 2d (animated) sprite */
 	z2.spriteFactory = z2.createComponentFactory( {sprite: null, width: 0, animations: null } );
@@ -70,17 +70,15 @@ zSquared['2d'] = function( z2 )
 	/** Component Factory for groups */
 	z2.groupFactory = z2.createComponentFactory( {group: []} );
 
-	/** Component Factory for 2d rendering groups */
-	z2.renderGroupFactory = z2.createComponentFactory();
-
-	/** Component Factory for 2d transform groups */
-	z2.transformGroupFactory = z2.createComponentFactory();
-
 	/** Component Factory for physics body (AABB bounds, mass, etc) */
-	z2.physicsBodyFactory = z2.createComponentFactory( {aabb:null, restitution: 0, mass:1, resistance_x: 0, resistance_y: 0, blocked_top: false, blocked_left:false, blocked_down:false, blocked_right:false} );
+	z2.physicsBodyFactory = z2.createComponentFactory( {aabb:null, restitution: 0, mass:1, blocked_top: false, blocked_left:false, blocked_down:false, blocked_right:false} );
 
 	/** Component Factory for 2d gravity */
 	z2.gravityFactory = z2.createComponentFactory( {x: 0, y: 0} );
+
+	/** Component Factory for 2d resistance (resistance to movement e.g. air
+	 * resistance, friction, etc) */
+	z2.resistanceFactory = z2.createComponentFactory( {x: 0, y: 0} );
 
 	/** Component Factory for sprite vs sprite collision */
 	z2.collisionGroupFactory = z2.createComponentFactory( {entities:null} );
@@ -195,7 +193,7 @@ zSquared['2d'] = function( z2 )
 	/** RenderingSystem factory function
 	 * requires: renderable
 	 * optional: image, sprite, tileLayer, size, rotation, scale, center
-	 * (MUST be an image or sprite or nothing can be rendered)
+	 * (MUST be an image, sprite or tilelayer or nothing can be rendered)
 	 * @function z2.createRenderingSystem
 	 * @arg {Canvas} canvas The HTML5 canvas to draw to
 	 * @arg {z2.View} view The View object for this transform system
@@ -217,19 +215,20 @@ zSquared['2d'] = function( z2 )
 
 		return new z2.System( Number.MAX_VALUE, [z2.renderableFactory],
 		{
-//			onStart: function()
-//			{
-//			},
+			onStart: function()
+			{
+				view.update();
+			},
 			update: function( e, dt )
 			{
 				// get the image...
-				var disp = e.getComponent( z2.imageFactory.mask );
+				var disp = e.getComponent( z2.imageFactory );
 
 				// ...or sprite...
 				var anims;
 				if( !disp )
 				{
-					disp = e.getComponent( z2.spriteFactory.mask );
+					disp = e.getComponent( z2.spriteFactory );
 					if( disp )
 						anims = disp.animations;
 				}
@@ -237,7 +236,7 @@ zSquared['2d'] = function( z2 )
 				// ...or tile layer...
 				if( !disp )
 				{
-					disp = e.getComponent( z2.tileLayerFactory.mask );
+					disp = e.getComponent( z2.tileLayerFactory );
 					if( disp )
 					{
 						disp.layer.render( view.x, view.y );
@@ -248,7 +247,7 @@ zSquared['2d'] = function( z2 )
 				// ...or image layer
 				if( !disp )
 				{
-					disp = e.getComponent( z2.imageLayerFactory.mask );
+					disp = e.getComponent( z2.imageLayerFactory );
 					if( disp )
 					{
 						disp.layer.render( view.x, view.y );
@@ -261,44 +260,55 @@ zSquared['2d'] = function( z2 )
 					return;
 
 				// get the position component
-				var pc = e.getComponent( z2.positionFactory.mask );
+				var pc = e.getComponent( z2.positionFactory );
 				var x = pc.x;
 				var y = pc.y;
 
 				// get the size component
-				var szc = e.getComponent( z2.sizeFactory.mask );
+				var szc = e.getComponent( z2.sizeFactory );
 
 				// get the rotation component
-				var rc = e.getComponent( z2.rotationFactory.mask );
+				var rc = e.getComponent( z2.rotationFactory );
 
 				// get the scale component
-				var sc = e.getComponent( z2.scaleFactory.mask );
+				var sc = e.getComponent( z2.scaleFactory );
 
 				// get the center point
-				var cc = e.getComponent( z2.centerFactory.mask );
+				var cc = e.getComponent( z2.centerFactory );
 
 				// get the PIXI sprite
 				var spr = disp.sprite;
 
-				// apply the size
+				var w, h, offs;
+
+				// set the texture frame, taking animation into account
+
+				// TODO: cache values so that we're not re-setting the frame
+				// unnecessarily
 				if( szc )
 				{
-					// TODO: cache values so that we're not re-setting the frame
-					// unnecessarily
-
-					// offset to the image in the sprite strip
-					var w = szc.width;
-					var h = szc.height;
-					var offs;
-					if( anims ) offs = anims.currentFrame * w;
-					else offs = 0;
-					
-					// update the current frame & image
-					if( anims )
-						anims.update( dt );
-
-					spr.texture.setFrame( new PIXI.Rectangle( offs, 0, w, h ) );
+					w = szc.width;
+					h = szc.height;
 				}
+				else
+				{
+					// sprites have width, images don't
+					if( disp.width )
+						w = disp.width;
+					else
+						w = spr.width;
+					h = spr.height;
+				}
+				// offset to the image in the sprite strip
+				if( anims ) offs = anims.currentFrame * w;
+				else offs = 0;
+					
+				// update the current frame & image
+				if( anims )
+					anims.update( dt );
+
+				spr.texture.setFrame( new PIXI.Rectangle( offs, 0, w, h ) );
+
 
 				// apply the transforms to the PIXI sprite
 
@@ -323,10 +333,11 @@ zSquared['2d'] = function( z2 )
 					spr.anchor.x = cc.cx;
 					spr.anchor.y = cc.cy;
 				}
+
+				// TODO: check if in View & mark visible 'false' if not
 			},
 			onEnd: function()
 			{
-				view.update();
 				renderer.render( stage );
 			}
 		} );
@@ -334,7 +345,7 @@ zSquared['2d'] = function( z2 )
 
 	/////////////////////////////////////////////////////////////////////////
 	/** MovementSystem factory function
-	 * requires: position, velocity, transform
+	 * requires: position, velocity
 	 * optional: positionConstraints, collisionMap, physicsBody (*required* if
 	 * there is a collisionMap or Group), gravity, collisionGroup
 	 * @function z2.createMovementSystem
@@ -353,27 +364,40 @@ zSquared['2d'] = function( z2 )
 			update: function( e, dt )
 			{
 				// get the position component
-				var pc = e.getComponent( z2.positionFactory.mask );
+				var pc = e.getComponent( z2.positionFactory );
 
 				// get the velocity component
-				var vc = e.getComponent( z2.velocityFactory.mask );
+				var vc = e.getComponent( z2.velocityFactory );
 
 				// get the gravity component
-				var gc = e.getComponent( z2.gravityFactory.mask );
+				var gc = e.getComponent( z2.gravityFactory );
+
+				// get the resistance component
+				var rc = e.getComponent( z2.resistanceFactory );
 
 				// get the pos constraints component
-				var pcc = e.getComponent( z2.positionConstraintsFactory.mask );
+				var pcc = e.getComponent( z2.positionConstraintsFactory );
 
 				// get the collision map component
-				var cmc = e.getComponent( z2.collisionMapFactory.mask );
+				var cmc = e.getComponent( z2.collisionMapFactory );
 
 				// get the physics body
-				var bc = e.getComponent( z2.physicsBodyFactory.mask );
+				var bc = e.getComponent( z2.physicsBodyFactory );
 
 				// get the collision group (sprite vs sprite collisions)
-				var cgc = e.getComponent( z2.collisionGroupFactory.mask );
+				var cgc = e.getComponent( z2.collisionGroupFactory );
+
+				// get the 'active' component
+				var ac = e.getComponent( z2.activeFactory );
+
+				// TODO: get the 'visible' component
+
+				// not active? bail
+				if( ac && !ac.active )
+					return;
 
 				// if the object is out of the world bounds, just bail
+				// TODO: set visible to false too? (so PIXI won't render)
 				if( window.game && game.scene && game.scene.map )
 				{
 					// TODO: should we be checking the object's bounds instead
@@ -452,192 +476,199 @@ zSquared['2d'] = function( z2 )
 				var m;
 				var collision = false;
 
-				// handle sprite vs sprite collisions
-				if( cgc )
+				// if we have a physics body, handle collision-related things
+				if( bc )
 				{
-					// TODO: friction only makes sense for 'full' (non-AABB)
-					// collisions (using circles, for example)
-
-					var entities = cgc.entities;
-					if( entities )
+					// handle sprite vs sprite collisions
+					if( cgc )
 					{
-						// TODO: optimize! figure out a better way to do this,
-						// it is potentially n^2 behaviour (e.g. if we need to
-						// collide two groups together)
-						// (keep a list of already collided sprites?)
-						for( var i = 0; i < entities.length; i++ )
+						// TODO: friction only makes sense for 'full' (non-AABB)
+						// collisions (using circles, for example)
+
+						var entities = cgc.entities;
+						if( entities )
 						{
-							var ent = entities[i];
-							var body = ent.getComponent( z2.physicsBodyFactory.mask );
-							var pos = ent.getComponent( z2.positionFactory.mask );
-							var vel = ent.getComponent( z2.velocityFactory.mask );
-
-							// don't collide against self
-							if( bc === body )
-								continue;
-
-							// setup the bounding boxes
-							this.aabb1[0] = bc.aabb[0] + pc.y;
-							this.aabb1[1] = bc.aabb[1] + pc.x;
-							this.aabb1[2] = bc.aabb[2] + pc.y;
-							this.aabb1[3] = bc.aabb[3] + pc.x;
-
-							this.aabb2[0] = body.aabb[0] + pos.y;
-							this.aabb2[1] = body.aabb[1] + pos.x;
-							this.aabb2[2] = body.aabb[2] + pos.y;
-							this.aabb2[3] = body.aabb[3] + pos.x;
-
-							// collide
-							m = z2.collideAabbVsAabb( this.aabb1, this.aabb2, this.pv );
-
-							// separate the aabb and stop velocity
-							if( m )
+							// TODO: optimize! figure out a better way to do this,
+							// it is potentially n^2 behaviour (e.g. if we need to
+							// collide two groups together)
+							// (keep a list of already collided sprites?)
+							for( var i = 0; i < entities.length; i++ )
 							{
-								collision = true;
+								var ent = entities[i];
+								var body = ent.getComponent( z2.physicsBodyFactory );
+								var pos = ent.getComponent( z2.positionFactory );
+								var vel = ent.getComponent( z2.velocityFactory );
 
-								// separate
-								pc.x += this.pv[0];
-								pc.y += this.pv[1];
-								
-								// m = mass, u = init vel, v = resultant vel
-								// cr = coefficient of restitution
-								// from wikipedia:
-								// (http://en.wikipedia.org/wiki/Coefficient_of_restitution#Speeds_after_impact)
-								// v1 = [(m1)(u1) + (m2)(u2) + (m2)(cr)(u2-u1)] / (m1+m2)
-								// v2 = [(m1)(u1) + (m2)(u2) + (m1)(cr)(u1-u2)] / (m1+m2)
+								// don't collide against self
+								if( bc === body )
+									continue;
 
-								var m1 = bc.mass;
-								var m2 = body.mass;
-								var mt = m1 + m2;
+								// setup the bounding boxes
+								this.aabb1[0] = bc.aabb[0] + pc.y;
+								this.aabb1[1] = bc.aabb[1] + pc.x;
+								this.aabb1[2] = bc.aabb[2] + pc.y;
+								this.aabb1[3] = bc.aabb[3] + pc.x;
 
-								var u1, u2, term;
+								this.aabb2[0] = body.aabb[0] + pos.y;
+								this.aabb2[1] = body.aabb[1] + pos.x;
+								this.aabb2[2] = body.aabb[2] + pos.y;
+								this.aabb2[3] = body.aabb[3] + pos.x;
 
-								// CoR is a properly a property of a *collision*, 
-								// not an object... we'll just take the average
-								var cr = (bc.restitution + body.restitution) / 2;
+								// collide
+								m = z2.collideAabbVsAabb( this.aabb1, this.aabb2, this.pv );
 
-								// left separation
-								if( this.pv[0] < 0 )
+								// separate the aabb and stop velocity
+								if( m )
 								{
-									u1 = vc.x; u2 = vel.x;
-									term = (m1*u1)+(m2*u2);
-									vc.x = (term + (m2*cr) * (u2-u1)) / mt;
-									vel.x = (term + (m1*cr) * (u1-u2)) / mt;
-									bc.blocked_right = true;
-									body.blocked_left = true;
-								}
-								// right separation
-								if( this.pv[0] > 0 )
-								{
-									u1 = vc.x; u2 = vel.x;
-									term = (m1*u1)+(m2*u2);
-									vc.x = (term + (m2*cr) * (u2-u1)) / mt;
-									vel.x = (term + (m1*cr) * (u1-u2)) / mt;
-									bc.blocked_left = true;
-									body.blocked_right = true;
-								}
-								// up separation
-								if( this.pv[1] < 0 )
-								{
-									u1 = vc.y; u2 = vel.y;
-									term = (m1*u1)+(m2*u2);
-									vc.y = (term + (m2*cr) * (u2-u1)) / mt;
-									vel.y = (term + (m1*cr) * (u1-u2)) / mt;
-									bc.blocked_down = true;
-									body.blocked_up = true;
-								}
-								// down separation
-								if( this.pv[1] > 0 )
-								{
-									u1 = vc.y; u2 = vel.y;
-									term = (m1*u1)+(m2*u2);
-									vc.y = (term + (m2*cr) * (u2-u1)) / mt;
-									vel.y = (term + (m1*cr) * (u1-u2)) / mt;
-									bc.blocked_up = true;
-									body.blocked_down = true;
+									collision = true;
+
+									// separate
+									pc.x += this.pv[0];
+									pc.y += this.pv[1];
+									
+									// m = mass, u = init vel, v = resultant vel
+									// cr = coefficient of restitution
+									// from wikipedia:
+									// (http://en.wikipedia.org/wiki/Coefficient_of_restitution#Speeds_after_impact)
+									// v1 = [(m1)(u1) + (m2)(u2) + (m2)(cr)(u2-u1)] / (m1+m2)
+									// v2 = [(m1)(u1) + (m2)(u2) + (m1)(cr)(u1-u2)] / (m1+m2)
+
+									var m1 = bc.mass;
+									var m2 = body.mass;
+									var mt = m1 + m2;
+
+									var u1, u2, term;
+
+									// CoR is a properly a property of a *collision*, 
+									// not an object... we'll just take the average
+									var cr = (bc.restitution + body.restitution) / 2;
+
+									// left separation
+									if( this.pv[0] < 0 )
+									{
+										u1 = vc.x; u2 = vel.x;
+										term = (m1*u1)+(m2*u2);
+										vc.x = (term + (m2*cr) * (u2-u1)) / mt;
+										vel.x = (term + (m1*cr) * (u1-u2)) / mt;
+										bc.blocked_right = true;
+										body.blocked_left = true;
+									}
+									// right separation
+									if( this.pv[0] > 0 )
+									{
+										u1 = vc.x; u2 = vel.x;
+										term = (m1*u1)+(m2*u2);
+										vc.x = (term + (m2*cr) * (u2-u1)) / mt;
+										vel.x = (term + (m1*cr) * (u1-u2)) / mt;
+										bc.blocked_left = true;
+										body.blocked_right = true;
+									}
+									// up separation
+									if( this.pv[1] < 0 )
+									{
+										u1 = vc.y; u2 = vel.y;
+										term = (m1*u1)+(m2*u2);
+										vc.y = (term + (m2*cr) * (u2-u1)) / mt;
+										vel.y = (term + (m1*cr) * (u1-u2)) / mt;
+										bc.blocked_down = true;
+										body.blocked_up = true;
+									}
+									// down separation
+									if( this.pv[1] > 0 )
+									{
+										u1 = vc.y; u2 = vel.y;
+										term = (m1*u1)+(m2*u2);
+										vc.y = (term + (m2*cr) * (u2-u1)) / mt;
+										vel.y = (term + (m1*cr) * (u1-u2)) / mt;
+										bc.blocked_up = true;
+										body.blocked_down = true;
+									}
 								}
 							}
 						}
 					}
-				}
 
-				// handle collision with collision map
-				if( cmc )
-				{
-					// TODO: non-AABB collision body??
-
-					// TODO: friction only makes sense for 'full' (non-AABB)
-					// collisions (using circles, for example)
-
-					this.aabb1[0] = bc.aabb[0] + pc.y;
-					this.aabb1[1] = bc.aabb[1] + pc.x;
-					this.aabb1[2] = bc.aabb[2] + pc.y;
-					this.aabb1[3] = bc.aabb[3] + pc.x;
-
-					// perform the collision
-					m = z2.collideAabbVsCollisionMap( this.aabb1, cmc.data, cmc.map.widthInTiles, cmc.map.heightInTiles, cmc.map.tileWidth, cmc.map.tileHeight, this.pv );
-
-					// separate the aabb and stop velocity
-					if( m )
+					// handle collision with collision map
+					if( cmc )
 					{
-						collision = true;
-						pc.x += this.pv[0];
-						pc.y += this.pv[1];
+						// TODO: non-AABB collision body??
 
-						// set velocity & 'blocked' in direction of collision
+						// TODO: friction only makes sense for 'full' (non-AABB)
+						// collisions (using circles, for example)
 
-						// left
-						if( this.pv[0] > 0 )
+						this.aabb1[0] = bc.aabb[0] + pc.y;
+						this.aabb1[1] = bc.aabb[1] + pc.x;
+						this.aabb1[2] = bc.aabb[2] + pc.y;
+						this.aabb1[3] = bc.aabb[3] + pc.x;
+
+						// perform the collision
+						m = z2.collideAabbVsCollisionMap( this.aabb1, cmc.data, cmc.map.widthInTiles, cmc.map.heightInTiles, cmc.map.tileWidth, cmc.map.tileHeight, this.pv );
+
+						// separate the aabb and stop velocity
+						if( m )
 						{
-							vc.x = vc.x * -bc.restitution;
-							bc.blocked_left = true;
-							bc.blocked_right = false;
-							bc.blocked_up = false;
-							bc.blocked_down = false;
+							collision = true;
+							pc.x += this.pv[0];
+							pc.y += this.pv[1];
+
+							// set velocity & 'blocked' in direction of collision
+
+							// left
+							if( this.pv[0] > 0 )
+							{
+								vc.x = vc.x * -bc.restitution;
+								bc.blocked_left = true;
+								bc.blocked_right = false;
+								bc.blocked_up = false;
+								bc.blocked_down = false;
+							}
+							// right
+							else if( this.pv[0] < 0 )
+							{
+								vc.x = vc.x * -bc.restitution;
+								bc.blocked_left = true;
+								bc.blocked_right = true;
+								bc.blocked_left = false;
+								bc.blocked_up = false;
+								bc.blocked_down = false;
+							}
+							// top
+							else if( this.pv[1] > 0 )
+							{
+								vc.y = vc.y * -bc.restitution;
+								bc.blocked_up = true;
+								bc.blocked_left = false;
+								bc.blocked_right = false;
+								bc.blocked_down = false;
+							}
+							// bottom
+							else if( this.pv[1] < 0 )
+							{
+								vc.y = vc.y * -bc.restitution;
+								bc.blocked_down = true;
+								bc.blocked_left = false;
+								bc.blocked_right = false;
+								bc.blocked_up = false;
+							}
 						}
-						// right
-						else if( this.pv[0] < 0 )
-						{
-							vc.x = vc.x * -bc.restitution;
-							bc.blocked_left = true;
-							bc.blocked_right = true;
-							bc.blocked_left = false;
-							bc.blocked_up = false;
-							bc.blocked_down = false;
-						}
-						// top
-						else if( this.pv[1] > 0 )
-						{
-							vc.y = vc.y * -bc.restitution;
-							bc.blocked_up = true;
-							bc.blocked_left = false;
-							bc.blocked_right = false;
-							bc.blocked_down = false;
-						}
-						// bottom
-						else if( this.pv[1] < 0 )
-						{
-							vc.y = vc.y * -bc.restitution;
-							bc.blocked_down = true;
-							bc.blocked_left = false;
-							bc.blocked_right = false;
-							bc.blocked_up = false;
-						}
+					}
+
+					// no collision, un-set blocked status
+					if( !collision )
+					{
+						bc.blocked_left = false;
+						bc.blocked_right = false;
+						bc.blocked_up = false;
+						bc.blocked_down = false;
 					}
 				}
 
-				// no collision, un-set blocked status
-				if( !collision )
-				{
-					bc.blocked_left = false;
-					bc.blocked_right = false;
-					bc.blocked_up = false;
-					bc.blocked_down = false;
-				}
-
 				// apply basic "air resistance" friction-like component
-				vc.x *= 1 - bc.resistance_x * idt;
-				vc.y *= 1 - bc.resistance_y * idt;
+				if( rc )
+				{
+					vc.x *= 1 - rc.x * idt;
+					vc.y *= 1 - rc.y * idt;
+				}
 
 				// gravity? apply second half after changing position
 				// (see www.niksula.cs.hut.fi/~hkankaan/Homepages/gravity.html) 

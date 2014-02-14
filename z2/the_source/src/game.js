@@ -31,6 +31,12 @@ window.game = {};
 // create a canvas
 var canvas = z2.createCanvas( WIDTH, HEIGHT, true );
 
+// stats fps display
+var stats = new Stats();
+document.body.appendChild( stats.domElement );
+stats.domElement.style.position = 'absolute';
+stats.domElement.style.top = '0px';
+
 // global set-up stuff
 
 z2.loader.setBaseUrl( 'assets/' );
@@ -85,6 +91,8 @@ var level_one =
 		z2.loader.queueAsset( 'oldman', 'oldman.png' );
 		z2.loader.queueAsset( 'cat', 'cat.png' );
 
+		z2.loader.queueAsset( 'firefly', 'firefly.png' );
+
 		z2.loader.queueAsset( 'font', 'open_sans_italic_20.fnt' );
 
 		// touchscreen control images
@@ -106,7 +114,7 @@ var level_one =
 			for( var j = 0; j < grp.length; j++ )
 			{
 				var obj = grp[j];
-				var cmc = obj.getComponent( z2.collisionMapFactory.mask );
+				var cmc = obj.getComponent( z2.collisionMapFactory );
 				if( cmc )
 				{
 					cmc.map = this.map;
@@ -116,12 +124,12 @@ var level_one =
 		}
 
 		// TODO: set the entities for collision groups
-//		var pcolg = game.player.getComponent( z2.collisionGroupFactory.mask );
+//		var pcolg = game.player.getComponent( z2.collisionGroupFactory );
 //		pcolg.entities = [];
 
 		// follow the player sprite
 		this.view.follow_mode = z2.FOLLOW_MODE_PLATFORMER;
-		var sprp = game.player.getComponent( z2.positionFactory.mask );
+		var sprp = game.player.getComponent( z2.positionFactory );
 		this.view.target = sprp;
 
 		// create input system
@@ -163,10 +171,12 @@ game.scene.start();
 //z2.main( z2.ecsUpdate );
 function mainloop( et )
 {
+	stats.begin();
 	// TODO: problem with this is that ecsUpdate calculates the time delta, so
 	// by intercepting here the dt doesn't get updated properly
 	if( !paused )
 		z2.ecsUpdate( et );
+	stats.end();
 }
 z2.main( mainloop );
 

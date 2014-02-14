@@ -49,7 +49,7 @@ zSquared.inputreceiver = function( z2 )
 			update: function( e, dt )
 			{
 				// get the input component
-				var input = e.getComponent( z2.inputFactory.mask );
+				var input = e.getComponent( z2.inputFactory );
 				input.jump = false;
 				input.action = false;
 				input.left = false;

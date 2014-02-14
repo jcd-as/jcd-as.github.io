@@ -13,219 +13,217 @@
 	// create a "player control" component factory
 	z2.playerControlFactory = z2.createComponentFactory();
 
+	var playerSys;
+
 	function createInputSystem( player )
 	{
-		z2.manager.get().addSystem( 
-			new z2.System( 40, [z2.playerControlFactory, z2.inputFactory, z2.velocityFactory, z2.physicsBodyFactory],
+		if( playerSys )
+			throw new Error( "Trying to create multiple player input systems!" );
+
+		playerSys = new z2.System( 40, [z2.playerControlFactory, z2.inputFactory, z2.velocityFactory, z2.physicsBodyFactory],
+		{
+			init: function()
 			{
-				init: function()
+				// initialize FSM
+				this.fsm = new z2.StateMachine( this.states, this );
+			},
+			update: function( e, dt )
+			{
+				// get the velocity component
+				var vc = e.getComponent( z2.velocityFactory );
+
+				// get the physics body
+				var bc = e.getComponent( z2.physicsBodyFactory );
+
+				// get the scale component
+				var sc = e.getComponent( z2.scaleFactory );
+
+				// get the sprite component
+				var sprite = e.getComponent( z2.spriteFactory );
+
+				// get the input component
+				var input = e.getComponent( z2.inputFactory );
+
+				// check input
+				var jump = false;
+				// only jump when standing on 'ground'
+				if( bc.blocked_down && input.jump )
+					jump = true;
+
+				var state = this.fsm.getState();
+				switch( state )
 				{
-					// initialize FSM
-					this.fsm = new z2.StateMachine( this.states, this );
-				},
-				update: function( e, dt )
-				{
-					// get the velocity component
-					var vc = e.getComponent( z2.velocityFactory.mask );
+				case 'walking':
+					// reset horizontal velocity
+	//					vc.x = 0;
 
-					// get the physics body
-					var bc = e.getComponent( z2.physicsBodyFactory.mask );
-
-					// get the scale component
-					var sc = e.getComponent( z2.scaleFactory.mask );
-
-					// get the sprite component
-					var sprite = e.getComponent( z2.spriteFactory.mask );
-
-					// get the input component
-					var input = e.getComponent( z2.inputFactory.mask );
-
-					// check input
-					var jump = false;
-					// only jump when standing on 'ground'
-					if( bc.blocked_down && input.jump )
-						jump = true;
-
-					var state = this.fsm.getState();
-					switch( state )
+					// can jump, fall, keep walking or stop
+					if( jump )
+						this.fsm.consumeEvent( 'jump', vc, bc, sc, sprite );
+					// TODO: this doesn't work, seems like every other frame this is
+					// not true...
+					// not touching ground ?
+	//				else if( !bc.blocked_down )
+	//					this.fsm.consumeEvent( 'fall', vc, bc );
+					else if( input.left )
 					{
-					case 'walking':
-						// reset horizontal velocity
-		//					vc.x = 0;
-
-						// can jump, fall, keep walking or stop
-						if( jump )
-							this.fsm.consumeEvent( 'jump', vc, bc, sc, sprite );
-						// TODO: this doesn't work, seems like every other frame this is
-						// not true...
-						// not touching ground ?
-		//				else if( !bc.blocked_down )
-		//					this.fsm.consumeEvent( 'fall', vc, bc );
-						else if( input.left )
-						{
-							this.goLeft( vc, bc, sc, sprite );
-						}
-						else if( input.right )
-						{
-							this.goRight( vc, bc, sc, sprite );
-						}
-						else
-						{
-							// stop
-							this.fsm.consumeEvent( 'stop', vc, bc, sc, sprite );
-						}
-						break;
-					case 'jumping':
-					case 'falling':
-						// reset horizontal velocity
-		//					vc.x = 0;
-
-						// land?
-						if( bc.blocked_down )
-						{
-		//					z2.playSound( 'land' );
-							this.fsm.consumeEvent( 'land', vc, bc, sc, sprite );
-						}
-						// can move side to side
-						if( input.left )
-						{
-							if( sc && this.facing == 'right' )
-								sc.sx *= -1; 
-							this.facing = 'left';
-							this.goLeft( vc, bc, sc, sprite );
-						}
-						else if( input.right )
-						{
-							if( sc && this.facing == 'left' )
-								sc.sx *= -1; 
-							this.facing = 'right';
-							this.goRight( vc, bc, sc, sprite );
-						}
-						break;
-					case 'idle':
-						// reset horizontal velocity
-		//					vc.x = 0;
-
-						// can walk or jump
-						if( jump )
-							this.fsm.consumeEvent( 'jump', vc, bc, sc, sprite );
-						else if( input.left )
-						{
-							if( sc && this.facing == 'right' )
-								sc.sx *= -1; 
-							this.facing = 'left';
-							this.fsm.consumeEvent( 'left', vc, bc, sc, sprite );
-						}
-						else if( input.right )
-						{
-							if( sc && this.facing == 'left' )
-								sc.sx *= -1; 
-							this.facing = 'right';
-							this.fsm.consumeEvent( 'right', vc, bc, sc, sprite );
-						}
-						break;
-					default:
-						break;
+						this.goLeft( vc, bc, sc, sprite );
 					}
-					////////////////////////////
-				},
-				facing : 'right',
-				h_vel_inc : 100,
-				v_vel_inc : 475,
-		//		v_vel_inc : 750,
-				// finite state machine states for player sprite
-				fsm : null,
-				states : 
-				[
+					else if( input.right )
 					{
-						'name' : 'idle',
-						'initial' : true,
-						'events' :
-						{
-							'left' : 'walking',
-							'right' : 'walking',
-							'jump' : 'jumping',
-						}
-					},
-					{
-						'name' : 'walking',
-						'events' :
-						{
-							'stop' : 'idle',
-							'jump' : 'jumping',
-							'fall' : 'falling',
-						}
-					},
-					{
-						'name' : 'jumping',
-						'events' :
-						{
-							'land' : 'idle',
-							'fall' : 'falling'
-						}
-					},
-					{
-						'name' : 'recovering',
-						'events' :
-						{
-							'recover' : 'idle'
-						}
-					},
-					{
-						'name' : 'falling',
-						'events' : 
-						{
-							'land' : 'idle',
-						}
+						this.goRight( vc, bc, sc, sprite );
 					}
-				],
-				// state handlers
-				idle : function( vc, bc, sc, sprite )
+					else
+					{
+						// stop
+						this.fsm.consumeEvent( 'stop', vc, bc, sc, sprite );
+					}
+					break;
+				case 'jumping':
+				case 'falling':
+					// reset horizontal velocity
+	//					vc.x = 0;
+
+					// land?
+					if( bc.blocked_down )
+					{
+	//					z2.playSound( 'land' );
+						this.fsm.consumeEvent( 'land', vc, bc, sc, sprite );
+					}
+					// can move side to side
+					if( input.left )
+					{
+						if( sc && this.facing == 'right' )
+							sc.sx *= -1; 
+						this.facing = 'left';
+						this.goLeft( vc, bc, sc, sprite );
+					}
+					else if( input.right )
+					{
+						if( sc && this.facing == 'left' )
+							sc.sx *= -1; 
+						this.facing = 'right';
+						this.goRight( vc, bc, sc, sprite );
+					}
+					break;
+				case 'idle':
+					// reset horizontal velocity
+	//					vc.x = 0;
+
+					// can walk or jump
+					if( jump )
+						this.fsm.consumeEvent( 'jump', vc, bc, sc, sprite );
+					else if( input.left )
+					{
+						if( sc && this.facing == 'right' )
+							sc.sx *= -1; 
+						this.facing = 'left';
+						this.fsm.consumeEvent( 'left', vc, bc, sc, sprite );
+					}
+					else if( input.right )
+					{
+						if( sc && this.facing == 'left' )
+							sc.sx *= -1; 
+						this.facing = 'right';
+						this.fsm.consumeEvent( 'right', vc, bc, sc, sprite );
+					}
+					break;
+				default:
+					break;
+				}
+				////////////////////////////
+			},
+			facing : 'right',
+			h_vel_inc : 100,
+			v_vel_inc : 475,
+			// finite state machine states for player sprite
+			fsm : null,
+			states : 
+			[
 				{
-					// set animation, facing
-					var anims = sprite.animations;
-					anims.stop();
+					'name' : 'idle',
+					'initial' : true,
+					'events' :
+					{
+						'left' : 'walking',
+						'right' : 'walking',
+						'jump' : 'jumping',
+					}
 				},
-				walking : function( vc, bc, sc, sprite )
 				{
-					// set animation, facing
-					var anims = sprite.animations;
-					if( anims.playing != 'walk' )
-						anims.play( 'walk' );
-					if( this.facing == 'left' )
-						this.goLeft( vc, bc, sc );
-					else if( this.facing == 'right' )
-						this.goRight( vc, bc, sc );
-		//				else error
+					'name' : 'walking',
+					'events' :
+					{
+						'stop' : 'idle',
+						'jump' : 'jumping',
+						'fall' : 'falling',
+					}
 				},
-				jumping : function( vc, bc, sc, sprite )
 				{
-					var anims = sprite.animations;
-					if( anims.playing != 'jump' )
-						anims.play( 'jump' );
-					vc.y = -this.v_vel_inc;
-					// set animation, facing
+					'name' : 'jumping',
+					'events' :
+					{
+						'land' : 'idle',
+						'fall' : 'falling'
+					}
 				},
-				falling : function( vc, bc, sc, sprite )
 				{
-					// set animation, facing
-					var anims = sprite.animations;
-					anims.stop();
+					'name' : 'recovering',
+					'events' :
+					{
+						'recover' : 'idle'
+					}
 				},
-				goLeft : function( vc, bc, sc, sprite )
 				{
-					vc.x += -this.h_vel_inc;
-//					if( sc )
-//						sc.sx = -1; 
-				},
-				goRight : function( vc, bc, sc, sprite )
-				{
-					vc.x += this.h_vel_inc;
-//					if( sc )
-//						sc.sx = 1; 
-				},
-			} )
-		);
+					'name' : 'falling',
+					'events' : 
+					{
+						'land' : 'idle',
+					}
+				}
+			],
+			// state handlers
+			idle : function( vc, bc, sc, sprite )
+			{
+				// set animation, facing
+				var anims = sprite.animations;
+				anims.stop();
+			},
+			walking : function( vc, bc, sc, sprite )
+			{
+				// set animation, facing
+				var anims = sprite.animations;
+				if( anims.playing != 'walk' )
+					anims.play( 'walk' );
+				if( this.facing == 'left' )
+					this.goLeft( vc, bc, sc );
+				else if( this.facing == 'right' )
+					this.goRight( vc, bc, sc );
+			},
+			jumping : function( vc, bc, sc, sprite )
+			{
+				var anims = sprite.animations;
+				if( anims.playing != 'jump' )
+					anims.play( 'jump' );
+				vc.y = -this.v_vel_inc;
+				// set animation, facing
+			},
+			falling : function( vc, bc, sc, sprite )
+			{
+				// set animation, facing
+				var anims = sprite.animations;
+				anims.stop();
+			},
+			goLeft : function( vc, bc, sc, sprite )
+			{
+				vc.x += -this.h_vel_inc;
+			},
+			goRight : function( vc, bc, sc, sprite )
+			{
+				vc.x += this.h_vel_inc;
+			},
+		} );
+		z2.manager.get().addSystem( playerSys );
 	}
 
 	// factory function to create player sprite
@@ -263,6 +261,8 @@
 				z2.playerControlFactory.create(),
 				// gravity component
 				z2.gravityFactory.create( {x: 0, y: 1000} ),
+				// resistance component
+				z2.resistanceFactory.create( {x: 5} ),
 				// sprite component
 				z2.spriteFactory.create( {sprite:sprite, animations:anims} ),
 				// velocity component
@@ -281,7 +281,7 @@
 				// position constraints component
 				z2.positionConstraintsFactory.create( {minx: 16, maxx: game.scene.map.width-16, miny: 32, maxy: game.scene.map.height-32} ),
 				// physics body component
-				z2.physicsBodyFactory.create( {aabb:[-32, -15, 32, 15], restitution:0.2, mass:1, resistance_x:5} ),
+				z2.physicsBodyFactory.create( {aabb:[-32, -15, 32, 15], restitution:0.2, mass:1} ),
 				// collision group for the player to collide against
 				z2.collisionGroupFactory.create( {entities:[]} ),
 				// tile map collision

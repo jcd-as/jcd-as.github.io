@@ -13,55 +13,58 @@
 	// create a "oldman brain" component factory
 	z2.oldmanBrainFactory = z2.createComponentFactory();
 
+	var oldmanSys;
 
 	function createOldmanSystem()
 	{
+		if( oldmanSys )
+			return;
+
 		var aabb1 = [0, 0, 0, 0];
 		var aabb2 = [0, 0, 0, 0];
-		z2.manager.get().addSystem( 
-			new z2.System( 50, [z2.oldmanBrainFactory, z2.inputFactory, z2.physicsBodyFactory],
+		oldmanSys = new z2.System( 50, [z2.oldmanBrainFactory, z2.inputFactory, z2.physicsBodyFactory],
+		{
+			update: function( e, dt )
 			{
-				update: function( e, dt )
+				var input = e.getComponent( z2.inputFactory );
+				if( input.action )
+					this.actionize( e );
+			},
+			actionize: function( e )
+			{
+				// do we have messages to choose from?
+				var msgs = e.getComponent( z2.messagesFactory );
+				if( msgs && msgs.messages && msgs.messages.length > 0 )
 				{
-					var input = e.getComponent( z2.inputFactory.mask );
-					if( input.action )
-						this.actionize( e );
-				},
-				actionize: function( e )
-				{
-					// do we have messages to choose from?
-					var msgs = e.getComponent( z2.messagesFactory.mask );
-					if( msgs && msgs.messages && msgs.messages.length > 0 )
+					// test for overlap with player sprite
+					var body = e.getComponent( z2.physicsBodyFactory );
+					var pos = e.getComponent( z2.positionFactory );
+					if( body && pos )
 					{
-						// test for overlap with player sprite
-						var body = e.getComponent( z2.physicsBodyFactory.mask );
-						var pos = e.getComponent( z2.positionFactory.mask );
-						if( body && pos )
-						{
-							var pbody = game.player.getComponent( z2.physicsBodyFactory.mask );
-							var ppos = game.player.getComponent( z2.positionFactory.mask );
+						var pbody = game.player.getComponent( z2.physicsBodyFactory );
+						var ppos = game.player.getComponent( z2.positionFactory );
 
-							aabb1[0] = pbody.aabb[0] + ppos.y;
-							aabb1[1] = pbody.aabb[1] + ppos.x;
-							aabb1[2] = pbody.aabb[2] + ppos.y;
-							aabb1[3] = pbody.aabb[3] + ppos.x;
+						aabb1[0] = pbody.aabb[0] + ppos.y;
+						aabb1[1] = pbody.aabb[1] + ppos.x;
+						aabb1[2] = pbody.aabb[2] + ppos.y;
+						aabb1[3] = pbody.aabb[3] + ppos.x;
 
-							aabb2[0] = body.aabb[0] + pos.y;
-							aabb2[1] = body.aabb[1] + pos.x;
-							aabb2[2] = body.aabb[2] + pos.y;
-							aabb2[3] = body.aabb[3] + pos.x;
-							if( !z2.testAabbVsAabb( aabb1, aabb2 ) )
-								return;
-						}
+						aabb2[0] = body.aabb[0] + pos.y;
+						aabb2[1] = body.aabb[1] + pos.x;
+						aabb2[2] = body.aabb[2] + pos.y;
+						aabb2[3] = body.aabb[3] + pos.x;
+						if( !z2.testAabbVsAabb( aabb1, aabb2 ) )
+							return;
+					}
 
-						// get a random message
+					// get a random message
 //						var rnd = 0 | Math.random() * (msgs.messages.length-1);
 //						z2.createMessage( msgs.messages[rnd] );
-						z2.createMessage( msgs.messages[0] );
-					}
-				},
-			} )
-		);
+					z2.createMessage( msgs.messages[0] );
+				}
+			},
+		} );
+		z2.manager.get().addSystem( oldmanSys );
 	}
 
 

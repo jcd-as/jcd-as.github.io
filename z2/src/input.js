@@ -255,11 +255,49 @@ zSquared.input = function( z2 )
 
 		start : function( num_buttons )
 		{
-//			if( !hasTouch ) return;
+			if( !hasTouch ) return;
 			this.numbuttons = num_buttons;
 			this.buttonDim = game.scene.view.width / num_buttons;
 
-			// TODO: our own touch handling
+			// our own touch event handling
+			var that = this;
+			this._touchHandler = function( e )
+			{
+				var i;
+				var touches = e.touches ? e.touches : [e];
+
+				// clear all buttons
+				for( i = 0; i < that.buttonsPressed.length; i++ )
+				{
+					that.buttonsPressed[i] = false;
+				}
+
+				// TODO: track button up 'events' too
+				// (track 'wasDown' array)
+
+				// set all buttons
+				for( i = 0; i < touches.length; i++ )
+				{
+					var touch = touches[i];
+					var button = that._getButton( touch );
+					if( button !== -1 )
+						that.buttonsPressed[button] = true;
+				}
+
+				// prevent default 
+				e.preventDefault();
+			};
+			this._getButton = function( touch )
+			{
+				// was this touch inside one of our buttons?
+				for( var i = 0; i < that.buttons.length; i++ )
+				{
+					if( touch.pageX < (i+1) * that.buttonDim )
+						return i;
+				}
+				return -1;
+			};
+
 			// add event listeners
 			game.scene.canvas.addEventListener( 'touchstart', this._touchHandler, false );
 			game.scene.canvas.addEventListener( 'touchend', this._touchHandler, false );
@@ -269,7 +307,7 @@ zSquared.input = function( z2 )
 
 		addButton : function( image )
 		{
-//			if( !hasTouch ) return;
+			if( !hasTouch ) return;
 			
 			// if we're not passed an image, make an 'empty' button
 			if( !image )
@@ -279,7 +317,6 @@ zSquared.input = function( z2 )
 				return;
 			}
 
-			// TODO: impl
 			var idx = this.buttons.length;
 			
 			var basetexture = new PIXI.BaseTexture( image );
@@ -293,20 +330,6 @@ zSquared.input = function( z2 )
 
 			button.alpha = 0.25;
 
-//			button.setInteractive( true );
-
-			// set events
-			// (capture buttonsPressed array for closure)
-			var bp = this.buttonsPressed;
-//			button.mousedown = button.touchstart = function( data )
-//			{
-//				bp[idx] = true;
-//			};
-//			button.mouseup = button.mouseout = button.touchendoutside = button.touchend = function( data )
-//			{
-//				bp[idx] = false;
-//			};
-
 			// add it to the view
 			game.scene.view.add( button, true );
 
@@ -316,11 +339,14 @@ zSquared.input = function( z2 )
 
 		isButtonDown : function( index )
 		{
+			if( !hasTouch ) return false;
 			return !!this.buttonsPressed[index];
 		},
 
 		hideButtons : function()
 		{
+			if( !hasTouch ) return;
+
 			for( var i = 0; i < this.buttons.length; i++ )
 			{
 				this.buttons[i].visible = false;
@@ -329,6 +355,8 @@ zSquared.input = function( z2 )
 
 		showButtons : function()
 		{
+			if( !hasTouch ) return;
+
 			for( var i = 0; i < this.buttons.length; i++ )
 			{
 				this.buttons[i].visible = false;
@@ -337,6 +365,8 @@ zSquared.input = function( z2 )
 
 		stop : function()
 		{
+			if( !hasTouch ) return;
+
 			// remove event listeners
 			game.scene.canvas.removeEventListener( 'touchstart', this._touchHandler );
 			game.scene.canvas.removeEventListener( 'touchend', this._touchHandler );
@@ -352,35 +382,6 @@ zSquared.input = function( z2 )
 			this.buttonsPressed = null;
 			this.numButtons = 0;
 			this.buttonDim = 0;
-		},
-
-		_touchHandler : function( e )
-		{
-			var touches = e.touches ? e.touches : [e];
-
-			// TODO: track button up 'events' too
-			// (track 'wasDown' array)
-			for( var i = 0; i < touches.length; i++ )
-			{
-				var touch = touches[i];
-				var button = this._getButton( touch );
-				if( button !== -1 )
-					this.buttonsPressed[button] = true;
-			}
-
-			// prevent default 
-			e.preventDefault();
-		},
-
-		_getButton : function( touch )
-		{
-			// was this touch inside one of our buttons?
-			for( var i = 0; i < this.buttons.length; i++ )
-			{
-				if( touch.pageX < (i+1) * this.buttonDim )
-					return i;
-			}
-			return -1;
 		},
 
 	};
