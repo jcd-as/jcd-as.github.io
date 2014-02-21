@@ -25,6 +25,7 @@ zSquared.inputreceiver = function( z2 )
 
 	z2.createInputSystem = function()
 	{
+		var actionTimer = 0;
 		return new z2.System( 10, [z2.inputHandlerFactory, z2.inputFactory],
 		{
 			init: function()
@@ -72,9 +73,12 @@ zSquared.inputreceiver = function( z2 )
 					input.left = true;
 				else if( z2.touch.isButtonDown( 1 ) )
 					input.right = true;
-				// TODO: get button up, not currently pressed
-				if( z2.touch.isButtonDown( 3 ) )
+				// only allow action key every 1/4 of a second
+				if( z2.touch.isButtonDown( 3 ) && z2.time.now() > actionTimer + 250 )
+				{
+					actionTimer = z2.time.now();
 					input.action = true;
+				}
 				if( z2.touch.isButtonDown( 4 ) )
 					input.jump = true;
 

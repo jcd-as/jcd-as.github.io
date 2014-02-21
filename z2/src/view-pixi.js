@@ -29,7 +29,6 @@ zSquared.view = function( z2 )
     * @property {number} x The X coordinate of the center of the View
     * @property {number} y The Y coordinate of the center of the View
 	 * @constructor
-	 * @arg {z2.Scene} scene The Scene object on which this View looks
 	 * @arg {number} width The width of the View, in pixels
 	 * @arg {number} height The height of the View, in pixels
 	 * @arg {Object} target The target object to follow. (Must support x and y
@@ -38,9 +37,9 @@ zSquared.view = function( z2 )
 	 * @arg {number} [x] Initial x coordinate of the (center of the) View
 	 * @arg {number} [y] Initial y coordinate of the (center of the) View
 	 */
-	z2.View = function( scene, width, height, target, follow_mode, x, y )
+	z2.View = function( width, height, target, follow_mode, x, y )
 	{
-		this.scene = scene;
+		this.scene = null;
 		this.width = width;
 		this.height = height;
 		this._target = null;
@@ -52,6 +51,10 @@ zSquared.view = function( z2 )
 		// PIXI display object container for scene / world space
 		this.doc = new PIXI.DisplayObjectContainer();
 		this.camera_doc.addChild( this.doc );
+		game.stage.addChild( this.camera_doc );
+		// PIXI display object container for objects 'fixed to the camera'
+		this.fixed = new PIXI.DisplayObjectContainer();
+		game.stage.addChild( this.fixed );
 		// position in scene / world space
 		var px = x || 0;
 		var py = y || 0;
@@ -90,7 +93,7 @@ zSquared.view = function( z2 )
 	z2.View.prototype.add = function( obj, fixed )
 	{
 		if( fixed )
-			this.scene.stage.addChild( obj );
+			this.fixed.addChild( obj );
 		else
 			this.doc.addChild( obj );
 	};
@@ -105,9 +108,25 @@ zSquared.view = function( z2 )
 	z2.View.prototype.remove = function( obj, fixed )
 	{
 		if( fixed )
-			this.scene.stage.removeChild( obj );
+			this.fixed.removeChild( obj );
 		else
 			this.doc.removeChild( obj );
+	};
+
+	/** Remove all (Pixi DisplayObjects) from the view
+	 * @function z2.View#clear
+	 * @memberof z2.View
+	 */
+	z2.View.prototype.clear = function()
+	{
+		game.stage.removeChild( this.fixed );
+		this.fixed = new PIXI.DisplayObjectContainer();
+		game.stage.addChild( this.fixed );
+		do
+		{
+			this.doc.removeChild( this.doc.children[0] );
+		}
+		while( game.view.doc.children.length > 0 );
 	};
 
 	Object.defineProperty( z2.View.prototype, 'follow_mode',
@@ -160,15 +179,18 @@ zSquared.view = function( z2 )
 		var xstop = false, ystop = false;
 
 		// account for scene size
-		if( x > this.scene.width - this.hbuf || x < this.hbuf )
+		if( this.scene )
 		{
-			// x can't change
-			xstop = true;
-		}
-		if( y > this.scene.height - this.vbuf || y < this.vbuf )
-		{
-			// y can't change
-			ystop = true;
+			if( x > this.scene.width - this.hbuf || x < this.hbuf )
+			{
+				// x can't change
+				xstop = true;
+			}
+			if( y > this.scene.height - this.vbuf || y < this.vbuf )
+			{
+				// y can't change
+				ystop = true;
+			}
 		}
 
 		var setx = false;
@@ -288,21 +310,24 @@ zSquared.view = function( z2 )
 			var right = -this.doc.position.x + this.width/2;
 			var top = -this.doc.position.y - this.height/2;
 			var bottom = -this.doc.position.y + this.height/2;
-			if( left < 0 || right > this.scene.width || top < 0 || bottom > this.scene.height )
+			if( this.scene )
 			{
-				// adjust the view so that we're not 'out of bounds'
-				var xoff = 0, yoff = 0;
-				if( left < 0 )
-					xoff = left;
-				else if( right > this.scene.width )
-					xoff = right - this.scene.width;
-				if( top < 0 )
-					yoff = top;
-				else if( bottom > this.scene.height )
-					yoff = bottom - this.scene.height;
+				if( left < 0 || right > this.scene.width || top < 0 || bottom > this.scene.height )
+				{
+					// adjust the view so that we're not 'out of bounds'
+					var xoff = 0, yoff = 0;
+					if( left < 0 )
+						xoff = left;
+					else if( right > this.scene.width )
+						xoff = right - this.scene.width;
+					if( top < 0 )
+						yoff = top;
+					else if( bottom > this.scene.height )
+						yoff = bottom - this.scene.height;
 
-				this.doc.position.x += xoff;
-				this.doc.position.y += yoff;
+					this.doc.position.x += xoff;
+					this.doc.position.y += yoff;
+				}
 			}
 		}
 	} );

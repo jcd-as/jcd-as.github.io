@@ -15,16 +15,15 @@
 	// create a "cat brain" component factory
 	z2.catBrainFactory = z2.createComponentFactory();
 
-	var catSys;
 
 	function createCatSystem()
 	{
-		if( catSys )
+		if( game.scene.catSys )
 			return;
 
 		var aabb1 = [0, 0, 0, 0];
 		var aabb2 = [0, 0, 0, 0];
-		catSys = new z2.System( 50, [z2.catBrainFactory, z2.inputFactory, z2.velocityFactory, z2.physicsBodyFactory],
+		game.scene.catSys = new z2.System( 50, [z2.catBrainFactory, z2.inputFactory, z2.velocityFactory, z2.physicsBodyFactory],
 		{
 			fsm : null,
 			active : false,
@@ -56,7 +55,10 @@
 			{
 				var input = e.getComponent( z2.inputFactory );
 				if( input.action )
-					this.actionize( e );
+				{
+					if( this.actionize( e ) )
+						input.action = false;
+				}
 
 				// update the FSM
 				switch( this.fsm.getState() )
@@ -109,16 +111,17 @@
 					aabb2[2] = body.aabb[2] + pos.y;
 					aabb2[3] = body.aabb[3] + pos.x;
 					if( !z2.testAabbVsAabb( aabb1, aabb2 ) )
-						return;
+						return false;
 				}
 				z2.createMessage( "MEOW" );
 				z2.playSound( 'meow' );
 				// activate
 				if( !this.active )
 					this.active = true;
+				return true;
 			},
 		} );
-		z2.manager.get().addSystem( catSys );
+		z2.manager.get().addSystem( game.scene.catSys );
 	}
 
 	// factory function to create Cat sprite
@@ -137,7 +140,7 @@
 		var sbasetexture = new PIXI.BaseTexture( s_img );
 		var stexture = new PIXI.Texture( sbasetexture );
 		var sprite = new PIXI.Sprite( stexture );
-		game.scene.view.add( sprite );
+		game.view.add( sprite );
 
 		// adjust position from Tiled upper-left coordinates to our center
 		// coordinates

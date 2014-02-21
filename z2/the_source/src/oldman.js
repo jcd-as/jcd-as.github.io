@@ -13,25 +13,31 @@
 	// create a "oldman brain" component factory
 	z2.oldmanBrainFactory = z2.createComponentFactory();
 
-	var oldmanSys;
 
 	function createOldmanSystem()
 	{
-		if( oldmanSys )
+		if( game.scene.oldmanSys )
 			return;
 
 		var aabb1 = [0, 0, 0, 0];
 		var aabb2 = [0, 0, 0, 0];
-		oldmanSys = new z2.System( 50, [z2.oldmanBrainFactory, z2.inputFactory, z2.physicsBodyFactory],
+		game.scene.oldmanSys = new z2.System( 50, [z2.oldmanBrainFactory, z2.inputFactory, z2.physicsBodyFactory],
 		{
 			update: function( e, dt )
 			{
 				var input = e.getComponent( z2.inputFactory );
 				if( input.action )
-					this.actionize( e );
+				{
+					if( this.actionize( e ) )
+						input.action = false;
+				}
 			},
 			actionize: function( e )
 			{
+				// don't allow if there is a msg showing already
+				if( z2.isMessageVisible() )
+					return false;
+
 				// do we have messages to choose from?
 				var msgs = e.getComponent( z2.messagesFactory );
 				if( msgs && msgs.messages && msgs.messages.length > 0 )
@@ -54,17 +60,18 @@
 						aabb2[2] = body.aabb[2] + pos.y;
 						aabb2[3] = body.aabb[3] + pos.x;
 						if( !z2.testAabbVsAabb( aabb1, aabb2 ) )
-							return;
+							return false;
 					}
 
 					// get a random message
 //						var rnd = 0 | Math.random() * (msgs.messages.length-1);
 //						z2.createMessage( msgs.messages[rnd] );
 					z2.createMessage( msgs.messages[0] );
+					return true;
 				}
 			},
 		} );
-		z2.manager.get().addSystem( oldmanSys );
+		z2.manager.get().addSystem( game.scene.oldmanSys );
 	}
 
 
@@ -84,7 +91,7 @@
 		var sbasetexture = new PIXI.BaseTexture( s_img );
 		var stexture = new PIXI.Texture( sbasetexture );
 		var sprite = new PIXI.Sprite( stexture );
-		game.scene.view.add( sprite );
+		game.view.add( sprite );
 
 		// adjust position from Tiled upper-left coordinates to our center
 		// coordinates

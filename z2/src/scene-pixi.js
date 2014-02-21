@@ -17,31 +17,17 @@ zSquared.scene = function( z2 )
 	 * @arg {number} width Width of the scene, in pixels
 	 * @arg {number} height Height of the scene, in pixels
 	 * @arg {Object} scene An object defining the functions for the scene: load,
-	 * create and update
+	 * init, create and destroy
 	 */
-	z2.Scene = function( canvas, width, height, scene )
+	z2.Scene = function( width, height, scene )
 	{
-		this.canvas = canvas;
 		this.load = scene.load || function() {};
+		this.init = scene.init || function() {};
 		this.create = scene.create || function() {};
-		this.update = scene.update || function(dt) {};
+		this.destroy = scene.destroy || function() {};
 
 		this.width = width || 0;
 		this.height = height || 0;
-
-		// create a Pixi stage for everything to be drawn on
-		this.stage = new PIXI.Stage( 0x800000 );
-
-		// get the ecs manager
-		this.mgr = z2.manager.get();
-
-		// create a view on the scene with some default values
-		this.view = new z2.View( this, this.canvas.width, this.canvas.height );
-
-		// create rendering system
-		// TODO: let override force_canvas & priority for rendering system?
-		this.force_canvas = false;
-		this.renderer = z2.createRenderingSystem( this.canvas, this.view, this.force_canvas );
 	};
 
 	/** Start the scene
@@ -57,13 +43,40 @@ zSquared.scene = function( z2 )
 		z2.loader.load( this._start, this );
 	};
 
+	/** Stop the scene
+	 * @method z2.Scene#stop
+	 * @memberof z2.Scene
+	 */
+	z2.Scene.prototype.stop = function()
+	{
+		// reset the ecs system
+		z2.manager.reset();
+
+		// tear-down the scene
+		this.destroy();
+	};
+
+
+	/** Re-start a scene
+	 * @method z2.Scene#restart
+	 * @memberof z2.Scene
+	 */
+	z2.Scene.prototype.restart = function()
+	{
+		this.stop();
+		this._start();
+	};
+
 	z2.Scene.prototype._start = function()
 	{
+		// get the ecs manager (force it to init)
+		z2.manager.get();
+
+		// init the scene
+		this.init();
+
 		// create the objects for the scene
 		this.create();
-
-		// lastly, add the renderering system
-		this.mgr.addSystem( this.renderer );
 	};
 };
 

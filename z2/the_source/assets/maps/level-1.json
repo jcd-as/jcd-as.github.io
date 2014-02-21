@@ -2,7 +2,7 @@
  "layers":[
         {
          "height":32,
-         "image":"",
+         "image":"..\/img\/background.png",
          "name":"background",
          "opacity":1,
          "properties":
@@ -55,6 +55,7 @@
          "y":0
         }, 
         {
+         "draworder":"topdown",
          "height":32,
          "name":"fg-objects",
          "objects":[
@@ -65,7 +66,9 @@
                     {
                      "msg":"everyone wants to get to the source. what will they find when they get there, i wonder..."
                     },
+                 "rotation":0,
                  "type":"OldMan",
+                 "visible":true,
                  "width":32,
                  "x":384,
                  "y":416
@@ -77,7 +80,9 @@
                     {
 
                     },
+                 "rotation":0,
                  "type":"Player",
+                 "visible":true,
                  "width":32,
                  "x":1184,
                  "y":352
@@ -90,7 +95,9 @@
                      "entity":"player",
                      "text":"this symbol... it looks familiar..."
                     },
+                 "rotation":0,
                  "type":"MsgTrigger",
+                 "visible":true,
                  "width":32,
                  "x":1120,
                  "y":352
@@ -103,7 +110,9 @@
                      "entity":"player",
                      "text":"it looks like these used to be pillars... perhaps some kind of shrine?"
                     },
+                 "rotation":0,
                  "type":"MsgTrigger",
+                 "visible":true,
                  "width":32,
                  "x":1024,
                  "y":352
@@ -122,7 +131,9 @@
                      "target_x":"61",
                      "target_y":"11"
                     },
+                 "rotation":0,
                  "type":"SetTileTrigger",
+                 "visible":true,
                  "width":32,
                  "x":1888,
                  "y":416
@@ -137,7 +148,9 @@
                      "new_x":"64",
                      "new_y":"288"
                     },
+                 "rotation":0,
                  "type":"NextLevelTrigger",
+                 "visible":true,
                  "width":32,
                  "x":2016,
                  "y":476
@@ -150,7 +163,9 @@
                      "entity":"player",
                      "text":"the road appears to end here"
                     },
+                 "rotation":0,
                  "type":"MsgTrigger",
+                 "visible":true,
                  "width":96,
                  "x":32,
                  "y":448
@@ -162,7 +177,9 @@
                     {
 
                     },
+                 "rotation":0,
                  "type":"Cat",
+                 "visible":true,
                  "width":32,
                  "x":1600,
                  "y":448
@@ -177,7 +194,9 @@
                      "repeating":"true",
                      "target":"cat"
                     },
+                 "rotation":0,
                  "type":"Alarm",
+                 "visible":true,
                  "width":32,
                  "x":1056,
                  "y":32
@@ -192,7 +211,9 @@
                      "on_exit":"reverseGravity",
                      "target":"player"
                     },
+                 "rotation":0,
                  "type":"Area",
+                 "visible":true,
                  "width":128,
                  "x":1344,
                  "y":416
@@ -204,7 +225,9 @@
                     {
                      "entity":"player"
                     },
+                 "rotation":0,
                  "type":"ResetLevelTrigger",
+                 "visible":true,
                  "width":32,
                  "x":32,
                  "y":317
@@ -218,20 +241,22 @@
                      "delay":"32",
                      "frames":"0, 1, 2, 3",
                      "image":"firefly",
+                     "maxAlpha":"1",
                      "maxLifespan":"5000",
                      "maxParticleSpeedX":"30",
                      "maxParticleSpeedY":"20",
                      "maxRotation":"90",
+                     "minAlpha":"0.2",
                      "minLifespan":"2000",
                      "minParticleSpeedX":"-30",
                      "minParticleSpeedY":"-20",
                      "minRotation":"-90",
-					 "minAlpha":"0.2",
-					 "maxAlpha":"1",
                      "period":"4000",
                      "quantity":"32"
                     },
+                 "rotation":0,
                  "type":"Emitter",
+                 "visible":true,
                  "width":2048,
                  "x":0,
                  "y":128

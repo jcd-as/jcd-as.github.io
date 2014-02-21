@@ -13,14 +13,13 @@
 	// create a "player control" component factory
 	z2.playerControlFactory = z2.createComponentFactory();
 
-	var playerSys;
 
 	function createInputSystem( player )
 	{
-		if( playerSys )
+		if( game.scene.playerSys )
 			throw new Error( "Trying to create multiple player input systems!" );
 
-		playerSys = new z2.System( 40, [z2.playerControlFactory, z2.inputFactory, z2.velocityFactory, z2.physicsBodyFactory],
+		game.scene.playerSys = new z2.System( 40, [z2.playerControlFactory, z2.inputFactory, z2.velocityFactory, z2.physicsBodyFactory],
 		{
 			init: function()
 			{
@@ -29,6 +28,12 @@
 			},
 			update: function( e, dt )
 			{
+//				if( z2.kbd.isDown( z2.kbd.SPACEBAR ) )
+//				{
+//					game.scene.restart();
+//					return;
+//				}
+
 				// get the velocity component
 				var vc = e.getComponent( z2.velocityFactory );
 
@@ -223,7 +228,7 @@
 				vc.x += this.h_vel_inc;
 			},
 		} );
-		z2.manager.get().addSystem( playerSys );
+		z2.manager.get().addSystem( game.scene.playerSys );
 	}
 
 	// factory function to create player sprite
@@ -242,7 +247,7 @@
 		var sbasetexture = new PIXI.BaseTexture( s_img );
 		var stexture = new PIXI.Texture( sbasetexture );
 		var sprite = new PIXI.Sprite( stexture );
-		game.scene.view.add( sprite );
+		game.view.add( sprite );
 
 		// adjust position from Tiled upper-left coordinates to our center
 		// coordinates
@@ -279,7 +284,7 @@
 				// center component
 				z2.centerFactory.create( {cx: 0.5, cy: 0.5} ),
 				// position constraints component
-				z2.positionConstraintsFactory.create( {minx: 16, maxx: game.scene.map.width-16, miny: 32, maxy: game.scene.map.height-32} ),
+				z2.positionConstraintsFactory.create( {minx: 16, maxx: game.scene.map.worldWidth-16, miny: 32, maxy: game.scene.map.worldHeight-32} ),
 				// physics body component
 				z2.physicsBodyFactory.create( {aabb:[-32, -15, 32, 15], restitution:0.2, mass:1} ),
 				// collision group for the player to collide against

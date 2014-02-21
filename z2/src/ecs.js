@@ -140,6 +140,10 @@ zSquared.ecs = function( z2 )
 	};
 
 
+	/** Name component for Entities
+	 */
+	z2.nameFactory = z2.createComponentFactory( {name: null} );
+
 	/** 
 	 * @class z2#z2.Entity
 	 * @classdesc Entity class
@@ -374,6 +378,39 @@ zSquared.ecs = function( z2 )
 					return copy;
 				},
 
+				/** Get an Entity by id. Only finds *living* entities
+				 * @method z2.manager#getEntityById
+				 * @arg {Number} id Unique Id of Entity desired
+				 * @returns {z2.Entity} Entity, null if not found
+				 */
+				getEntityById : function( id )
+				{
+					for( var i = 0; i < living.length; i++ )
+					{
+						if( living[i] === id )
+							return entities[living[i]];
+					}
+					return null;
+				},
+
+				/** Get an Entity by name. Only finds *living* entities
+				 * @method z2.manager#getEntityById
+				 * @arg {String} name Name of Entity desired (name component)
+				 * @returns {z2.Entity} Entity, null if not found
+				 */
+				getEntityByName : function( name )
+				{
+					for( var i = 0; i < living.length; i++ )
+					{
+						// check for a name component
+						var e = entities[living[i]];
+						var nc = e.getComponent( z2.nameFactory );
+						if( nc && nc.name === name )
+							return e;
+					}
+					return null;
+				},
+
 				/** Add a System
 				 * @method z2.manager#addSystem
 				 * @arg {z2.System} sys The System to add
@@ -506,6 +543,10 @@ zSquared.ecs = function( z2 )
 				if( !instance )
 					instance = init();
 				return instance;
+			},
+			reset : function()
+			{
+				instance = null;
 			}
 		};
 	})();

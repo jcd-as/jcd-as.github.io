@@ -11,6 +11,7 @@
 // - music & sound fx
 // - preloader with progress indicator
 // - splash screen
+// - handle orientation change events & reset size
 // - 
 
 (function()
@@ -23,13 +24,81 @@ var HEIGHT = 384;
 window.z2 = zSquared();
 
 // require z2 modules
-z2.require( ["loader", "input", "tiledscene", "audio", "statemachine", "inputreceiver", "message"] );
+z2.require( ["device", "loader", "input", "game", "tiledscene", "audio", "statemachine", "inputreceiver", "message", "level"] );
  
-// global game object
-window.game = {};
-
 // create a canvas
-var canvas = z2.createCanvas( WIDTH, HEIGHT, true );
+var canvas = z2.createCanvas( WIDTH, HEIGHT, null, true );
+
+// determine best rendering method based on device/os:
+var force_canvas = false;
+// TODO: handle ejecta, cocoonJS etc
+if( z2.device.iOS )
+{
+	force_canvas = true;
+	z2.setRenderMethod( z2.renderers.RENDER_SIMPLE );
+}
+else if( z2.device.android )
+{
+	if( z2.device.crosswalk )
+	{
+		// (on Nexus 7) crosswalk still seems to be faster using canvas than
+		// webGL
+		force_canvas = true;
+		z2.setRenderMethod( z2.renderers.RENDER_OPT_PAGES );
+	}
+//	else if( z2.device.cocoonJS )
+//	{
+//	}
+	else
+	{
+		force_canvas = true;
+		z2.setRenderMethod( z2.renderers.RENDER_OPT_PAGES );
+	}
+}
+
+// TODO: move this into game class ?
+// setup mobile
+if( z2.device.mobile )
+{
+	// TODO: force rotate to landscape??
+	
+	var w = window.innerWidth;
+	var h = window.innerHeight;
+
+	var aspect = WIDTH / HEIGHT;
+
+//	canvas.style.width = w;
+//	canvas.style.height = h;
+	
+	// if there's room, double the res
+//	if( w >= WIDTH*2 && h >= HEIGHT*2 )
+//	{
+//		canvas.style.width = WIDTH*2;
+//		canvas.style.height = HEIGHT*2;
+//	}
+	
+	// stretch to available space, but retain aspect ratio
+	// in portrait mode
+	if( w < h )
+	{
+		canvas.style.width = w;
+		canvas.style.height = w / aspect;
+	}
+	// in landscape mode
+	else
+	{
+		canvas.style.height = h;
+		canvas.style.width = h * aspect;
+	}
+
+	// center the canvas
+	canvas.style.padding = 0;
+	canvas.style.margin = 'auto';
+	canvas.style.display = 'block';
+}
+
+// global game object
+var game = new z2.Game( canvas, force_canvas );
 
 // stats fps display
 var stats = new Stats();
@@ -44,128 +113,45 @@ z2.loader.setImageBaseUrl( 'img/' );
 z2.loader.setAudioBaseUrl( 'snd/' );
 z2.loader.setFontBaseUrl( 'fnt/' );
 
-// TODO: move this to a "game" class??
-var paused = false;
-var visibilityChange = function( event )
+// TODO: move these fcns somewhere:
+// trigger, area and alarm functions for this level:
+z2.reverseGravity = function( triggerer, target )
 {
-	if( paused === false && (event.type == 'pagehide' || event.type == 'blur' || document.hidden === true || document.webkitHidden === true))
-		paused = true;
-	else
-		paused = false;
-
-	if( paused )
-		z2.pauseSounds();
-	else
-		z2.resumeSounds();
+	// TODO: something interesting
+//	z2.playSound( 'meow' );
+	var gc = target.getComponent( z2.gravityFactory );
+	gc.y *= -1;
 };
-document.addEventListener( 'visibilitychange', visibilityChange, false );
-document.addEventListener( 'webkitvisibilitychange', visibilityChange, false );
-document.addEventListener( 'pagehide', visibilityChange, false );
-document.addEventListener( 'pageshow', visibilityChange, false );
-window.onblur = visibilityChange;
-window.onfocus = visibilityChange;
-
-z2.Cat = function( obj )
+z2.meow = function( target )
 {
-};
-z2.OldMan = function( obj )
-{
+	z2.playSound( 'meow' );
 };
 
-// create an object defining our scene
-// (load, create and update methods)
-var level_one = 
-{
-	load : function()
-	{
-		z2.loader.queueAsset( 'man', 'stylized.png' );
-//		z2.loader.queueAsset( 'field', 'field.mp3' );
-//		z2.loader.queueAsset( 'field', 'field.ogg' );
-//		z2.loader.queueAsset( 'land', 'landing.mp3' );
-//		z2.loader.queueAsset( 'land', 'landing.ogg' );
-//		z2.loader.queueAsset( 'logo', 'logo.mp3' );
-//		z2.loader.queueAsset( 'logo', 'logo.ogg' );
-		z2.loader.queueAsset( 'meow', 'meow.mp3' );
-//		z2.loader.queueAsset( 'meow', 'meow.ogg' );
+// TODO: load the splash screen here, which should cascade to the main menu and
+// eventually the game levels
 
-		z2.loader.queueAsset( 'oldman', 'oldman.png' );
-		z2.loader.queueAsset( 'cat', 'cat.png' );
-
-		z2.loader.queueAsset( 'firefly', 'firefly.png' );
-
-		z2.loader.queueAsset( 'font', 'open_sans_italic_20.fnt' );
-
-		// touchscreen control images
-		z2.loader.queueAsset( 'left', 'button_left.png' );
-		z2.loader.queueAsset( 'right', 'button_right.png' );
-		z2.loader.queueAsset( 'circle', 'button_circle.png' );
-		z2.loader.queueAsset( 'square', 'button_square.png' );
-
-		// pre-create items that need to be in-place *before* maps and sprites
-		// are created
-		game.input = z2.inputFactory.create();
-	},
-
-	create : function()
-	{
-		for( var i = 0; i < this.map.objectGroups.length; i++ )
-		{
-			var grp = this.map.objectGroups[i];
-			for( var j = 0; j < grp.length; j++ )
-			{
-				var obj = grp[j];
-				var cmc = obj.getComponent( z2.collisionMapFactory );
-				if( cmc )
-				{
-					cmc.map = this.map;
-					cmc.data = this.map.collisionMap;
-				}
-			}
-		}
-
-		// TODO: set the entities for collision groups
-//		var pcolg = game.player.getComponent( z2.collisionGroupFactory );
-//		pcolg.entities = [];
-
-		// follow the player sprite
-		this.view.follow_mode = z2.FOLLOW_MODE_PLATFORMER;
-		var sprp = game.player.getComponent( z2.positionFactory );
-		this.view.target = sprp;
-
-		// create input system
-		var is = z2.createInputSystem();
-		this.mgr.addSystem( is );
-
-		// create an actionable system
-//		var as = z2.createActionableSystem();
-//		this.mgr.addSystem( as );
-
-		// create a message display system
-		var msgs = z2.createMessageSystem();
-		this.mgr.addSystem( msgs );
-
-		// create a movement system
-		var ms = z2.createMovementSystem( 20 );
-		this.mgr.addSystem( ms );
-
-		// start soundtrack for this level
-//		z2.playSound( 'field', 0, 1, true );
-	},
-
-	update : function( dt )
-	{
-	}
-};
-
+// load the json for our first level
+z2.loader.queueAsset( 'level-1', 'levels/level-1.json' );
+z2.loader.load( start );
 
 // create a Tiled map scene using our scene definition object
-game.scene = new z2.TiledScene( canvas, 'assets/maps/level-1.json', level_one );
-// TODO: these don't work so well with tile maps
-//game.scene.view.rotation = z2.math.d2r(10);
-//game.scene.view.sx = 2;
+function start()
+{
+	// level (asset) json is loaded, load the Tiled map
+	var level = z2.loader.getAsset( 'level-1' );
+	var level_one = z2.level( level );
 
-// start the scene
-game.scene.start();
+	game.scene = new z2.TiledScene( 'assets/maps/level-1.json', level_one );
+	// TODO: these don't work so well with tile maps
+	//game.view.rotation = z2.math.d2r(10);
+	//game.view.sx = 2;
+
+	// start the scene
+	game.scene.start();
+
+	// start the main game loop
+	z2.main( mainloop );
+}
 
 // start the main ecs loop
 //z2.main( z2.ecsUpdate );
@@ -174,11 +160,10 @@ function mainloop( et )
 	stats.begin();
 	// TODO: problem with this is that ecsUpdate calculates the time delta, so
 	// by intercepting here the dt doesn't get updated properly
-	if( !paused )
+	if( !game.paused )
 		z2.ecsUpdate( et );
 	stats.end();
 }
-z2.main( mainloop );
 
 })();
 

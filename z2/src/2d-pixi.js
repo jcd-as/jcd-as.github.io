@@ -197,21 +197,13 @@ zSquared['2d'] = function( z2 )
 	 * @function z2.createRenderingSystem
 	 * @arg {Canvas} canvas The HTML5 canvas to draw to
 	 * @arg {z2.View} view The View object for this transform system
-	 * @arg {boolean} [force_canvas_rendering] If 'true', forces the renderer to
-	 * use 2d Canvas rendering instead of WebGL
 	 * @arg {number} [priority] Priority of system. Override only if you need
 	 * the renderer to NOT run last
 	 */
 	z2.createRenderingSystem = function( canvas, view, force_canvas_rendering, priority )
 	{
-		// TODO: support different widths/heights than the canvas'
-		var renderer;
-		if( force_canvas_rendering )
-			renderer = new PIXI.CanvasRenderer( canvas.width, canvas.height, canvas );
-		else
-			renderer = PIXI.autoDetectRenderer( canvas.width, canvas.height, canvas );
-
-		var stage = view.scene.stage;
+		var stage = game.stage;
+		var renderer = game.renderer;
 
 		return new z2.System( Number.MAX_VALUE, [z2.renderableFactory],
 		{
@@ -400,11 +392,23 @@ zSquared['2d'] = function( z2 )
 				// TODO: set visible to false too? (so PIXI won't render)
 				if( window.game && game.scene && game.scene.map )
 				{
-					// TODO: should we be checking the object's bounds instead
-					// of just its position? (don't want objects stopping while
-					// still partially visible)
-					if( pc.x > game.scene.map.worldWidth ||
-						pc.y > game.scene.map.worldHeight )
+					var width = 0, height = 0;
+					// if we have a size component, use it
+					var szc = e.getComponent( z2.sizeFactory );
+					if( szc )
+					{
+						width = szc.width;
+						height = szc.height;
+					}
+					// otherwise, if we have a physics body, use it
+					else if( bc )
+					{
+						width = bc.aabb[3] - bc.aabb[1];
+						height = bc.aabb[2] - bc.aabb[0];
+					}
+
+					if( pc.x - width > game.scene.map.worldWidth ||
+						pc.y - height > game.scene.map.worldHeight )
 						return;
 				}
 

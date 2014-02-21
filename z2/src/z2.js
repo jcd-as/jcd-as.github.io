@@ -63,15 +63,21 @@ var zSquared = function( opts )
 		 * @arg {Number} h Canvas height, in pixels
 		 * @arg {boolean} [add_to_doc] Should this canvas be added to the
 		 * document?
+		 * @arg {DOM Element} [parent] Parent element in DOM
 		 * @returns {Canvas} The Canvas object
 		 */
-		createCanvas : function( w, h, add_to_doc )
+		createCanvas : function( w, h, parent, add_to_doc )
 		{
 			var canvas = document.createElement( 'canvas' );
 			canvas.width = w;
 			canvas.height = h;
 			if( add_to_doc )
-				document.body.appendChild( canvas );
+			{
+				if( parent )
+					parent.appendChild( canvas );
+				else
+					document.body.appendChild( canvas );
+			}
 			return canvas;
 		},
 
@@ -108,6 +114,22 @@ var zSquared = function( opts )
 				return round( (Math.random() * (max - min)) + min );
 			else
 				return val;
+		},
+
+		/** Find an item in an array by 'name' property
+		 * @function z2#findByName
+		 * @arg {array} array Array in which to find object
+		 * @arg {string} name
+		 * @returns item with given name
+		 */
+		findByName : function( array, name )
+		{
+			for( var i = 0; i < array.length; i++ )
+			{
+				if( array[i].name && array[i].name === name )
+					return array[i];
+			}
+			return null;
 		}
 
 	};

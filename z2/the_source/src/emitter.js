@@ -13,13 +13,13 @@
 
 	var emitterSys;
 
-	function createEmitterSystem()
+	function createEmitterSystem( spritesheet )
 	{
 		if( emitterSys )
 			return;
 
 		// create an emitter system
-		emitterSys = z2.createEmitterSystem( game.scene.view, 'firefly', 8 );
+		emitterSys = z2.createEmitterSystem( game.view, spritesheet );
 		z2.manager.get().addSystem( emitterSys );
 	}
 
@@ -30,6 +30,16 @@
 		if( !props )
 			return;
 
+		var frames;
+		if( props.frames )
+		{
+			frames = [];
+			var f = props.frames.split( ',' );
+			for( var i = 0; i < f.length; i++ )
+			{
+				frames.push( +f[i] );
+			}
+		}
 		// create an emitter
 		var em = z2.manager.get().createEntity( 
 		[
@@ -49,6 +59,8 @@
 				width: obj.width,
 				// height of the emitter (in pixels)
 				height: obj.height,
+				// array of frames
+				frames: frames,
 				// min/max particle speeds (chosen at random in this range)
 				minParticleSpeedX: +props.minParticleSpeedX, 
 				maxParticleSpeedX: +props.maxParticleSpeedX,
@@ -67,7 +79,7 @@
 			z2.positionFactory.create( {x: obj.x, y: obj.y} )
 		] );
 
-		createEmitterSystem();
+		createEmitterSystem( props.image );
 
 		return em;
 	};

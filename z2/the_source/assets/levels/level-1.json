@@ -1,0 +1,26 @@
+{
+	"assets" : 
+	[
+		{ "key": "font", "url": "open_sans_italic_20.fnt" },
+
+		{ "key": "man", "url": "stylized.png" },
+		{ "key": "oldman", "url": "oldman.png" },
+		{ "key": "cat", "url": "cat.png" },
+		{ "key": "left", "url": "button_left.png" },
+		{ "key": "right", "url": "button_right.png" },
+		{ "key": "circle", "url": "button_circle.png" },
+		{ "key": "square", "url": "button_square.png" }
+	],
+	"sounds" : 
+	[
+		{ "key": "field", "name": "field" },
+		{ "key": "land", "name": "landing" },
+		{ "key": "meow", "name": "meow" },
+		{ "key": "click", "name": "click" }
+	],
+	"spritesheets" :
+	[
+		{ "key": "firefly", "url": "firefly.png", "width": 8, "height": 8 }
+	]
+}
+
