@@ -9,7 +9,8 @@
 		{ "key": "left", "url": "button_left.png" },
 		{ "key": "right", "url": "button_right.png" },
 		{ "key": "circle", "url": "button_circle.png" },
-		{ "key": "square", "url": "button_square.png" }
+		{ "key": "square", "url": "button_square.png" },
+		{ "key": "paused-image", "url": "paused.png" }
 	],
 	"sounds" : 
 	[
