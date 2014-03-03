@@ -11,16 +11,15 @@
 
 	z2.require( ['ecs', 'emitter'] );
 
-	var emitterSys;
 
 	function createEmitterSystem( spritesheet )
 	{
-		if( emitterSys )
+		if( game.scene.emitterSys )
 			return;
 
 		// create an emitter system
-		emitterSys = z2.createEmitterSystem( game.view, spritesheet );
-		z2.manager.get().addSystem( emitterSys );
+		game.scene.emitterSys = z2.createEmitterSystem( game.view, spritesheet );
+		z2.manager.get().addSystem( game.scene.emitterSys );
 	}
 
 	// factory function to create Emitter
@@ -74,7 +73,9 @@
 				maxAlpha: props.maxAlpha === undefined ? 1 : +props.maxAlpha,
 				// min/max particle lifespan (in ms)
 				minLifespan: props.minLifespan === undefined ? props.period : +props.minLifespan,
-				maxLifespan: props.maxLifespan === undefined ? props.period : +props.maxLifespan
+				maxLifespan: props.maxLifespan === undefined ? props.period : +props.maxLifespan,
+				// max number of particles that can exist at once
+				maxParticles: +props.maxParticles,
 			} ),
 			z2.positionFactory.create( {x: obj.x, y: obj.y} )
 		] );

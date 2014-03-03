@@ -47,7 +47,7 @@
 
 				// get last triggered time
 				if( ar.last_alarm === undefined )
-					ar.last_alarm = 0;
+					ar.last_alarm = z2.time.now();
 
 				// already fired?
 				if( ar.last_alarm !== 0 && !ar.repeating )

@@ -88,7 +88,18 @@
 				case 'falling':
 					// reset horizontal velocity
 	//					vc.x = 0;
+					// for the first half-second of the jump...
+					var t = z2.time.now();
+					if( t - this.jumpTimer < 500 )
+					{
+						// if jump button is *not* down, reduce upward velocity
+						if( !input.jump )
+						{
+							vc.y += (this.v_vel_inc / dt);
+						}
+					}
 
+					// if the jump button is
 					// land?
 					if( bc.blocked_down )
 					{
@@ -210,6 +221,8 @@
 				var anims = sprite.animations;
 				if( anims.playing != 'jump' )
 					anims.play( 'jump' );
+				// start the sprite jumping
+				this.jumpTimer = z2.time.now();
 				vc.y = -this.v_vel_inc;
 				// set animation, facing
 			},

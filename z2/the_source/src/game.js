@@ -9,9 +9,26 @@
 // - player 'falling' logic not working (seems to not be 'blocked' by ground
 // every other frame)
 // - music & sound fx
-// - preloader with progress indicator
-// - splash screen
-// - handle orientation change events & reset size
+// x preloader with progress indicator
+// x splash screen
+// x handle orientation change events & reset size
+// x handle resize events & reset size
+// x follow mode allows level-1 to scroll up off the top of the background image
+// x player should be able to jump lower/higher by holding jump key down
+// less/more time
+// - save/load game/state using local storage
+// * common assets load (in main menu?) to load assets that will be used in all
+// levels (don't need this, just don't unload assets loaded during
+// splash/menu/whatever)
+// - prime the JIT (in splash? main menu?) by running game/tilemap code without
+// rendering...
+// x support cut-scenes (fade-out/fade-in, swipe, etc)
+//
+// - BUG: clicking into the window during splash screen (w/ devtools open) can
+// cause hang. (has to do with paused state getting toggled on)
+//
+// - keep a "stack" of Scenes in the Game object instead of just the current
+// scene (means having a Pixi Stage per-scene instead of game-wide)
 // - 
 
 (function()
@@ -34,49 +51,40 @@ var force_canvas = false;
 // TODO: handle ejecta, cocoonJS etc
 if( z2.device.iOS )
 {
+	// iOS / Safari oddly hates RENDER_OPT_PAGES and draws everything herky
+	// jerky...
 	force_canvas = true;
 	z2.setRenderMethod( z2.renderers.RENDER_SIMPLE );
 }
 else if( z2.device.android )
 {
+	// Pixi 1.5 has an android perf regression that means that canvas is faster
+	// than webgl :(
+	// fixed in dev branch!!
 	if( z2.device.crosswalk )
 	{
-		// (on Nexus 7) crosswalk still seems to be faster using canvas than
-		// webGL
-		force_canvas = true;
-		z2.setRenderMethod( z2.renderers.RENDER_OPT_PAGES );
+//		force_canvas = true;
+//		z2.setRenderMethod( z2.renderers.RENDER_OPT_PAGES );
 	}
 //	else if( z2.device.cocoonJS )
 //	{
 //	}
 	else
 	{
-		force_canvas = true;
-		z2.setRenderMethod( z2.renderers.RENDER_OPT_PAGES );
+//		force_canvas = true;
+//		z2.setRenderMethod( z2.renderers.RENDER_OPT_PAGES );
 	}
 }
 
 // TODO: move this into game class ?
 // setup mobile
-if( z2.device.mobile )
+function setSizeMobile()
 {
-	// TODO: force rotate to landscape??
-	
 	var w = window.innerWidth;
 	var h = window.innerHeight;
 
 	var aspect = WIDTH / HEIGHT;
 
-//	canvas.style.width = w;
-//	canvas.style.height = h;
-	
-	// if there's room, double the res
-//	if( w >= WIDTH*2 && h >= HEIGHT*2 )
-//	{
-//		canvas.style.width = WIDTH*2;
-//		canvas.style.height = HEIGHT*2;
-//	}
-	
 	// stretch to available space, but retain aspect ratio
 	// in portrait mode
 	if( w < h )
@@ -95,16 +103,78 @@ if( z2.device.mobile )
 	canvas.style.padding = 0;
 	canvas.style.margin = 'auto';
 	canvas.style.display = 'block';
+	canvas.style.position = 'absolute';
+	canvas.style.top = 0;
+	canvas.style.bottom = 0;
+	canvas.style.left = 0;
+	canvas.style.right = 0;
+}
+function setSizeDesktop()
+{
+	var w = window.innerWidth;
+	var h = window.innerHeight;
+
+	// if there's room, double the res
+	if( w >= WIDTH*2 && h >= HEIGHT*2 )
+	{
+		canvas.style.width = WIDTH*2;
+		canvas.style.height = HEIGHT*2;
+	}
+	else
+	{
+		canvas.style.width = WIDTH;
+		canvas.style.height = HEIGHT;
+	}
+	
+	// TODO: this won't work for hosting on sites that want to place banners
+	// etc:
+	// center the canvas
+	canvas.style.padding = 0;
+	canvas.style.margin = 'auto';
+	canvas.style.display = 'block';
+	canvas.style.position = 'absolute';
+	canvas.style.top = 0;
+	canvas.style.bottom = 0;
+	canvas.style.left = 0;
+	canvas.style.right = 0;
+}
+var orientation;
+// mobile
+if( z2.device.mobile )
+{
+	// get device orientation
+	if( window['orientation'] )
+		orientation = window['orientation'];
+	else
+	{
+		if( window.outerWidth > window.outerHeight )
+			orientation = 90;
+		else
+			orientation = 0;
+	}
+	// set orientation change listener
+	window.addEventListener( 'orientationchange', setSizeMobile, false );
+	
+	// set size
+	setSizeMobile();
+}
+// desktop
+else
+{
+	window.addEventListener( 'resize', setSizeDesktop, false );
+
+	setSizeDesktop();
 }
 
 // global game object
 var game = new z2.Game( canvas, force_canvas );
 
+// TODO: move this to Game class:
 // stats fps display
-var stats = new Stats();
-document.body.appendChild( stats.domElement );
-stats.domElement.style.position = 'absolute';
-stats.domElement.style.top = '0px';
+z2.stats = new Stats();
+document.body.appendChild( z2.stats.domElement );
+z2.stats.domElement.style.position = 'absolute';
+z2.stats.domElement.style.top = '0px';
 
 // global set-up stuff
 
@@ -127,42 +197,19 @@ z2.meow = function( target )
 	z2.playSound( 'meow' );
 };
 
-// TODO: load the splash screen here, which should cascade to the main menu and
-// eventually the game levels
-
+// TODO: move this to splash screen/main-menu
 // load the json for our first level
 z2.loader.queueAsset( 'level-1', 'levels/level-1.json' );
 z2.loader.load( start );
 
-// create a Tiled map scene using our scene definition object
+// start the splash screen, which will cascade to our level
 function start()
 {
-	// level (asset) json is loaded, load the Tiled map
-	var level = z2.loader.getAsset( 'level-1' );
-	var level_one = z2.level( level );
+	// start the splash scene
+	game.startScene( z2.splash, WIDTH, HEIGHT );
 
-	game.scene = new z2.TiledScene( 'assets/maps/level-1.json', level_one );
-	// TODO: these don't work so well with tile maps
-	//game.view.rotation = z2.math.d2r(10);
-	//game.view.sx = 2;
-
-	// start the scene
-	game.scene.start();
-
-	// start the main game loop
-	z2.main( mainloop );
-}
-
-// start the main ecs loop
-//z2.main( z2.ecsUpdate );
-function mainloop( et )
-{
-	stats.begin();
-	// TODO: problem with this is that ecsUpdate calculates the time delta, so
-	// by intercepting here the dt doesn't get updated properly
-	if( !game.paused )
-		z2.ecsUpdate( et );
-	stats.end();
+	// start the main loop
+	game.start();
 }
 
 })();

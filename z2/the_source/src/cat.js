@@ -93,6 +93,11 @@
 			},
 			actionize: function( e )
 			{
+				// TODO: note that this code assumes only a single cat!
+				// cat already active?
+				if( this.active )
+					return false;
+
 				// test for overlap with player sprite
 				var body = e.getComponent( z2.physicsBodyFactory );
 				var pos = e.getComponent( z2.positionFactory );
