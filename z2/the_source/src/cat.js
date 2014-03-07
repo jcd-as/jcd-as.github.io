@@ -7,7 +7,7 @@
 // - 
 
 
-(function()
+zSquared.cat = function( z2 )
 {
 	// 'cat' component
 	"use strict";
@@ -175,7 +175,7 @@
 				// center component
 				z2.centerFactory.create( {cx: 0.5, cy: 0.5} ),
 				// physics body component
-				z2.physicsBodyFactory.create( {aabb:[-15, -15, 15, 15], restitution:0.2, mass:1, resistance_x:5} ),
+				z2.physicsBodyFactory.create( {aabb:[-15, -15, 15, 15], restitution:0.2, mass:1} ),
 				// tile map collision
 				z2.collisionMapFactory.create( {map: null, data: null} )
 			] );
@@ -186,5 +186,5 @@
 		return cat;
 	};
 
-})();
+};
 

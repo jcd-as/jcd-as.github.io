@@ -5,7 +5,7 @@
 // TODO:
 // -
 
-(function()
+zSquared.area = function( z2 )
 {
 	"use strict";
 
@@ -155,5 +155,5 @@
 		return ar;
 	};
 
-})();
+};
 

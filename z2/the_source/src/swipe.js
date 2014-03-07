@@ -6,7 +6,7 @@
 // TODO:
 // -
 
-(function()
+zSquared.swipe = function( z2 )
 {
 	"use strict";
 
@@ -82,4 +82,5 @@
 		return false;
 	};
 
-})();
+};
+

@@ -1,0 +1,28 @@
+{
+	"assets" : 
+	[
+		{ "key": "font", "url": "open_sans_italic_20.fnt" },
+
+		{ "key": "man", "url": "stylized.png" },
+		{ "key": "oldman", "url": "oldman.png" },
+		{ "key": "ball", "url": "stone.png" },
+		{ "key": "slithy-tove", "url": "slithytove.png" },
+		{ "key": "left", "url": "button_left.png" },
+		{ "key": "right", "url": "button_right.png" },
+		{ "key": "circle", "url": "button_circle.png" },
+		{ "key": "square", "url": "button_square.png" },
+		{ "key": "paused-image", "url": "paused.png" }
+	],
+	"sounds" : 
+	[
+		{ "key": "field", "name": "field" },
+		{ "key": "land", "name": "landing" },
+		{ "key": "click", "name": "click" }
+	],
+	"spritesheets" :
+	[
+		{ "key": "raindrop", "url": "raindrop.png", "width": 8, "height": 8 }
+	]
+}
+
+

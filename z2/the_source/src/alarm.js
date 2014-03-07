@@ -5,7 +5,7 @@
 // TODO:
 // -
 
-(function()
+zSquared.alarm = function( z2 )
 {
 	"use strict";
 
@@ -96,5 +96,5 @@
 		return ar;
 	};
 
-})();
+};
 

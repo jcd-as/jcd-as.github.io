@@ -6,7 +6,7 @@
 // - SetTileTrigger: don't assume trigger tile is on main layer
 // -
 
-(function()
+zSquared.trigger = function( z2 )
 {
 	"use strict";
 
@@ -246,6 +246,82 @@
 		return tr;
 	};
 
+	/* Create a trigger that starts a new level
+	 * @function z2#NextLevelTrigger
+	 * <p>Tiled properties:</p>
+	 * <ul>
+	 * <li>entity: string - Name of the Entity that can flip this trigger</li>
+	 * <li>level: number - Number of new level to start</li>
+	 * <li>new_x: number - X coordinate of starting position in new level</li>
+	 * <li>new_y: number - Y coordinate of starting position in new level</li>
+	 * </ul>
+	 */
+	z2.NextLevelTrigger = function( obj )
+	{
+		var props = obj.properties;
+		if( !props )
+			return;
+
+		var new_level = +props.level;
+		var lvl = 'level-' + new_level;
+		var new_x = +props.new_x;
+		var new_y = +props.new_y;
+		var next = function()
+		{
+			// TODO: some animation or something?
+
+			// queue the level file
+			z2.loader.queueAsset( lvl, 'levels/' + lvl + '.json' );
+			// TODO: unload old level asset?
+			// start the load
+			z2.loader.load( start );
+		};
+		var start = function()
+		{
+			// TODO: new_x and new_y aren't used
+
+			// TODO: save the correct game data from the state and game objects
+			// save the game state
+			var save_state = { 'level' : new_level };
+			z2.saveState( 'the-source', save_state );
+
+			var level = z2.loader.getAsset( lvl );
+			var level_obj = z2.level( level );
+			// clear the old level data
+			z2.loader.deleteAsset( 'level' );
+			// create the new level
+			var scene = new z2.TiledScene( 'assets/maps/' + lvl + '.json', level_obj );
+			game.startScene( scene );
+		};
+
+		// create a trigger 
+		var tr = z2.manager.get().createEntity( 
+		[
+			z2.triggerableFactory.create(
+			{
+				on : next,
+				off : null,
+				entity_name : props.entity,
+				on_touch : true
+			} ),
+			z2.positionFactory.create(
+			{
+				x : obj.x,
+				y : obj.y
+			} ),
+			z2.sizeFactory.create(
+			{
+				width : obj.width,
+				height : obj.height
+			} ),
+			game.input
+		] );
+
+		createTriggerSystem();
+
+		return tr;
+	};
+
 	/* Create a trigger that sets tiles in the tile map
 	 * @function z2#SetTileTrigger
 	 * <p>Tiled properties:</p>
@@ -415,5 +491,5 @@
 
 
 
-})();
+};
 

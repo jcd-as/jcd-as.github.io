@@ -6,7 +6,7 @@
 // -
 
 
-(function()
+zSquared.player = function( z2 )
 {
 	"use strict";
 
@@ -64,7 +64,7 @@
 
 					// can jump, fall, keep walking or stop
 					if( jump )
-						this.fsm.consumeEvent( 'jump', vc, bc, sc, sprite );
+						this.fsm.consumeEvent( 'jump', vc, bc, sc, sprite, dt );
 					// TODO: this doesn't work, seems like every other frame this is
 					// not true...
 					// not touching ground ?
@@ -72,16 +72,16 @@
 	//					this.fsm.consumeEvent( 'fall', vc, bc );
 					else if( input.left )
 					{
-						this.goLeft( vc, bc, sc, sprite );
+						this.goLeft( vc, bc, sc, sprite, dt );
 					}
 					else if( input.right )
 					{
-						this.goRight( vc, bc, sc, sprite );
+						this.goRight( vc, bc, sc, sprite, dt );
 					}
 					else
 					{
 						// stop
-						this.fsm.consumeEvent( 'stop', vc, bc, sc, sprite );
+						this.fsm.consumeEvent( 'stop', vc, bc, sc, sprite, dt );
 					}
 					break;
 				case 'jumping':
@@ -90,12 +90,13 @@
 	//					vc.x = 0;
 					// for the first half-second of the jump...
 					var t = z2.time.now();
-					if( t - this.jumpTimer < 500 )
+//					if( t - this.jumpTimer < 500 )
 					{
 						// if jump button is *not* down, reduce upward velocity
-						if( !input.jump )
+						if( !input.jump && vc.y < 0 )
 						{
-							vc.y += (this.v_vel_inc / dt);
+//							vc.y += (this.v_vel_dec / dt);
+							vc.y = 0;
 						}
 					}
 
@@ -104,7 +105,7 @@
 					if( bc.blocked_down )
 					{
 	//					z2.playSound( 'land' );
-						this.fsm.consumeEvent( 'land', vc, bc, sc, sprite );
+						this.fsm.consumeEvent( 'land', vc, bc, sc, sprite, dt );
 					}
 					// can move side to side
 					if( input.left )
@@ -112,14 +113,14 @@
 						if( sc && this.facing == 'right' )
 							sc.sx *= -1; 
 						this.facing = 'left';
-						this.goLeft( vc, bc, sc, sprite );
+						this.goLeft( vc, bc, sc, sprite, dt );
 					}
 					else if( input.right )
 					{
 						if( sc && this.facing == 'left' )
 							sc.sx *= -1; 
 						this.facing = 'right';
-						this.goRight( vc, bc, sc, sprite );
+						this.goRight( vc, bc, sc, sprite, dt );
 					}
 					break;
 				case 'idle':
@@ -128,20 +129,20 @@
 
 					// can walk or jump
 					if( jump )
-						this.fsm.consumeEvent( 'jump', vc, bc, sc, sprite );
+						this.fsm.consumeEvent( 'jump', vc, bc, sc, sprite, dt );
 					else if( input.left )
 					{
 						if( sc && this.facing == 'right' )
 							sc.sx *= -1; 
 						this.facing = 'left';
-						this.fsm.consumeEvent( 'left', vc, bc, sc, sprite );
+						this.fsm.consumeEvent( 'left', vc, bc, sc, sprite, dt );
 					}
 					else if( input.right )
 					{
 						if( sc && this.facing == 'left' )
 							sc.sx *= -1; 
 						this.facing = 'right';
-						this.fsm.consumeEvent( 'right', vc, bc, sc, sprite );
+						this.fsm.consumeEvent( 'right', vc, bc, sc, sprite, dt );
 					}
 					break;
 				default:
@@ -150,8 +151,10 @@
 				////////////////////////////
 			},
 			facing : 'right',
-			h_vel_inc : 100,
-			v_vel_inc : 475,
+			// velocity increments (in pixels-per-second)
+			h_vel_inc : 225,
+			v_vel_inc : 440,
+			v_vel_dec : 750,
 			// finite state machine states for player sprite
 			fsm : null,
 			states : 
@@ -199,24 +202,24 @@
 				}
 			],
 			// state handlers
-			idle : function( vc, bc, sc, sprite )
+			idle : function( vc, bc, sc, sprite, dt )
 			{
 				// set animation, facing
 				var anims = sprite.animations;
 				anims.stop();
 			},
-			walking : function( vc, bc, sc, sprite )
+			walking : function( vc, bc, sc, sprite, dt )
 			{
 				// set animation, facing
 				var anims = sprite.animations;
 				if( anims.playing != 'walk' )
 					anims.play( 'walk' );
 				if( this.facing == 'left' )
-					this.goLeft( vc, bc, sc );
+					this.goLeft( vc, bc, sc, sprite, dt );
 				else if( this.facing == 'right' )
-					this.goRight( vc, bc, sc );
+					this.goRight( vc, bc, sc, sprite, dt );
 			},
-			jumping : function( vc, bc, sc, sprite )
+			jumping : function( vc, bc, sc, sprite, dt )
 			{
 				var anims = sprite.animations;
 				if( anims.playing != 'jump' )
@@ -226,19 +229,19 @@
 				vc.y = -this.v_vel_inc;
 				// set animation, facing
 			},
-			falling : function( vc, bc, sc, sprite )
+			falling : function( vc, bc, sc, sprite, dt )
 			{
 				// set animation, facing
 				var anims = sprite.animations;
 				anims.stop();
 			},
-			goLeft : function( vc, bc, sc, sprite )
+			goLeft : function( vc, bc, sc, sprite, dt )
 			{
-				vc.x += -this.h_vel_inc;
+				vc.x += -this.h_vel_inc/dt;
 			},
-			goRight : function( vc, bc, sc, sprite )
+			goRight : function( vc, bc, sc, sprite, dt )
 			{
-				vc.x += this.h_vel_inc;
+				vc.x += this.h_vel_inc/dt;
 			},
 		} );
 		z2.manager.get().addSystem( game.scene.playerSys );
@@ -309,5 +312,5 @@
 		return game.player;
 	};
 
-})();
+};
 

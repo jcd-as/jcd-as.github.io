@@ -6,7 +6,7 @@
 // TODO:
 // -
 
-(function()
+zSquared.fade = function( z2 )
 {
 	"use strict";
 
@@ -55,5 +55,5 @@
 		return false;
 	};
 
-})();
+};
 

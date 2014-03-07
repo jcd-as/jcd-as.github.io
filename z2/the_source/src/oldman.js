@@ -6,7 +6,7 @@
 // - 
 
 
-(function()
+zSquared.oldman = function( z2 )
 {
 	"use strict";
 
@@ -130,5 +130,5 @@
 		return oldman;
 	};
 
-})();
+};
 

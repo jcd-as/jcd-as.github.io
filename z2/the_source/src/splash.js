@@ -7,7 +7,7 @@
 // cause hang - _start is set to some ludicrously large number somehow...
 // -
 
-(function()
+zSquared.splash = function( z2 )
 {
 	"use strict";
 
@@ -34,8 +34,10 @@
 	var _timer = 0;
 	var _xfadeComplete = false;
 
-	z2.splash = function( width, height )
+	z2.splash = function( width, height, start_level, skip )
 	{
+		var lvl = 'level-' + start_level;
+
 		// return the Scene object
 		var splash = new z2.Scene( width, height, 
 			{
@@ -57,6 +59,9 @@
 
 					// 'loading' graphic
 					z2.loader.queueAsset( 'loading', 'loading.png' );
+
+					// load the json for our first level
+					z2.loader.queueAsset( lvl, 'levels/' + lvl + '.json' );
 				},
 				init : function()
 				{
@@ -70,6 +75,9 @@
 				},
 				create : function()
 				{
+					if( skip )
+						return;
+
 					// add logo to view
 					var img = z2.loader.getAsset( 'logo' );
 					var basetexture = new PIXI.BaseTexture( img );
@@ -117,6 +125,18 @@
 				},
 				update : function()
 				{
+					if( skip || _xfadeComplete && (z2.kbd.isDown( z2.kbd.ENTER ) || _touched) )
+					{
+						// level (asset) json is loaded, load the Tiled map
+						var level = z2.loader.getAsset( lvl );
+						var level_obj = z2.level( level );
+						var scene = new z2.TiledScene( 'assets/maps/' + lvl + '.json', level_obj );
+						var loading = z2.loader.getAsset( 'loading' );
+						scene.loadProgressImage = loading;
+						game.startScene( scene );
+						return;
+					}
+
 					// cross-fade from logo to splash, ignore input until
 					// x-fade is complete
 
@@ -147,20 +167,6 @@
 						// render Pixi
 						game.renderer.render( game.stage );
 					}
-					// otherwise check for input
-					else if( z2.kbd.isDown( z2.kbd.ENTER ) || _touched )
-					{
-						// TODO: get saved state from local storage & start at appropriate
-						// level
-
-						// level (asset) json is loaded, load the Tiled map
-						var level = z2.loader.getAsset( 'level-1' );
-						var level_one = z2.level( level );
-						var scene = new z2.TiledScene( 'assets/maps/level-1.json', level_one );
-						var loading = z2.loader.getAsset( 'loading' );
-						scene.loadProgressImage = loading;
-						game.startScene( scene );
-					}
 
 					_lastEt = now;
 				},
@@ -176,36 +182,39 @@
 					game.canvas.removeEventListener( 'touchmove', _touchHandler );
 					game.canvas.removeEventListener( 'touchcancel', _touchHandler );
 
-					// clean up assets
-					z2.loader.deleteAsset( 'logo-fx' );
-					z2.loader.deleteAsset( 'logo' );
-					z2.loader.deleteAsset( 'splash' );
-
-					// remove the logo & splash from Pixi
-					game.view.remove( image, true );
-
-					// remove the splash doc from Pixi
-					game.view.remove( this.splash_doc, true );
-
-					// unload assets - 
-					// splash screen sound effects
-					if( z2.device.firefox )
+					if( !skip )
+					{
+						// clean up assets
 						z2.loader.deleteAsset( 'logo-fx' );
-					else
-						z2.loader.deleteAsset( 'logo-fx' );
-					// studio logo
-					z2.loader.deleteAsset( 'logo' );
-					// splash screen logo
-					z2.loader.deleteAsset( 'splash' );
+						z2.loader.deleteAsset( 'logo' );
+						z2.loader.deleteAsset( 'splash' );
 
-					// (NOTE: don't unload font or loading graphic, we'll keep using
-					// them)
+						// remove the logo & splash from Pixi
+						game.view.remove( image, true );
 
-					// TODO: any more clean up ?
+						// remove the splash doc from Pixi
+						game.view.remove( this.splash_doc, true );
+
+						// unload assets - 
+						// splash screen sound effects
+						if( z2.device.firefox )
+							z2.loader.deleteAsset( 'logo-fx' );
+						else
+							z2.loader.deleteAsset( 'logo-fx' );
+						// studio logo
+						z2.loader.deleteAsset( 'logo' );
+						// splash screen logo
+						z2.loader.deleteAsset( 'splash' );
+
+						// (NOTE: don't unload font or loading graphic, we'll keep using
+						// them)
+
+						// TODO: any more clean up ?
+					}
 				}
 			} );
 		return splash;
 	};
 
-})();
+};
 

@@ -4,7 +4,7 @@
 // using the z-squared engine
 //
 // TODO:
-// - all the other sprites and entities (switches etc)
+// - all the other sprites and entities (Ball, Jumper)
 // - refactor / improve organization
 // - player 'falling' logic not working (seems to not be 'blocked' by ground
 // every other frame)
@@ -16,19 +16,18 @@
 // x follow mode allows level-1 to scroll up off the top of the background image
 // x player should be able to jump lower/higher by holding jump key down
 // less/more time
-// - save/load game/state using local storage
+// x save/load game/state using local storage
 // * common assets load (in main menu?) to load assets that will be used in all
 // levels (don't need this, just don't unload assets loaded during
 // splash/menu/whatever)
-// - prime the JIT (in splash? main menu?) by running game/tilemap code without
-// rendering...
+// * prime the JIT (in splash? main menu?) by running game/tilemap code without
+// rendering... (a half-second pause in cut-scene should help accomplish this)
 // x support cut-scenes (fade-out/fade-in, swipe, etc)
-//
-// - BUG: clicking into the window during splash screen (w/ devtools open) can
-// cause hang. (has to do with paused state getting toggled on)
-//
+// x 'rain' emitter not right on level 2
+// x skip splash screen/menu when 'lvl' query strings is set
+// - implement (more) sloped tiles
 // - keep a "stack" of Scenes in the Game object instead of just the current
-// scene (means having a Pixi Stage per-scene instead of game-wide)
+// scene (means having a Pixi Stage per-scene instead of game-wide) ?
 // - 
 
 (function()
@@ -41,7 +40,7 @@ var HEIGHT = 384;
 window.z2 = zSquared();
 
 // require z2 modules
-z2.require( ["device", "loader", "input", "game", "tiledscene", "audio", "statemachine", "inputreceiver", "message", "level"] );
+z2.require( ["device", "loader", "input", "game", "tiledscene", "audio", "statemachine", "inputreceiver", "message", "level", "splash", "emitter_obj", "trigger", "alarm", "area", "swipe", "fade", "player", "oldman", "cat", "ball"] );
  
 // create a canvas
 var canvas = z2.createCanvas( WIDTH, HEIGHT, null, true );
@@ -166,6 +165,55 @@ else
 	setSizeDesktop();
 }
 
+// read options from query string
+//
+// force Canvas?
+var r, debug, start_level;
+var skip_splash;
+// get from query string
+var key_vals = location.search.substring( 1 ).split( '&' );
+for( var i in key_vals )
+{
+    var key = key_vals[i].split( '=' );
+    if( key.length > 1 )
+    {
+		// 'render='
+        if( decodeURIComponent( key[0] ) === 'render' )
+            r = decodeURIComponent( key[1].replace( /\+/g, ' ' ) );
+		// TODO:
+		// 'dbg='
+        if( decodeURIComponent( key[0] ) === 'dbg' )
+            debug = !!decodeURIComponent( key[1].replace( /\+/g, ' ' ) );
+		// 'lvl='
+        if( decodeURIComponent( key[0] ) === 'lvl' )
+            start_level = +decodeURIComponent( key[1].replace( /\+/g, ' ' ) );
+    }
+}
+if( start_level )
+	skip_splash = true;
+if( typeof( r ) == 'string' )
+{
+    if( r === 'canvas' )
+        force_canvas = true;
+}
+// if we didn't get a level from the query string,
+// load starting level from saved game in local storage:
+if( !start_level )
+{
+	var save_file = 'the-source';
+	var saved_state = z2.loadState( save_file );
+	if( saved_state )
+	{
+		// start the appropriate level
+		start_level = saved_state.level;
+	}
+	else
+	{
+		// start at level 1 by default
+		start_level = 1;
+	}
+}
+
 // global game object
 var game = new z2.Game( canvas, force_canvas );
 
@@ -197,20 +245,12 @@ z2.meow = function( target )
 	z2.playSound( 'meow' );
 };
 
-// TODO: move this to splash screen/main-menu
-// load the json for our first level
-z2.loader.queueAsset( 'level-1', 'levels/level-1.json' );
-z2.loader.load( start );
 
 // start the splash screen, which will cascade to our level
-function start()
-{
-	// start the splash scene
-	game.startScene( z2.splash, WIDTH, HEIGHT );
+game.startScene( z2.splash, WIDTH, HEIGHT, start_level, skip_splash );
 
-	// start the main loop
-	game.start();
-}
+// start the main loop
+game.start();
 
 })();
 

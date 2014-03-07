@@ -5,7 +5,7 @@
 // TODO:
 // -
 
-(function()
+zSquared.emitter_obj = function( z2 )
 {
 	"use strict";
 
@@ -85,5 +85,5 @@
 		return em;
 	};
 
-})();
+};
 

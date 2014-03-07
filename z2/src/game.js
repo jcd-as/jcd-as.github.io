@@ -73,6 +73,11 @@ zSquared.game = function( z2 )
 		// create a view with some default values
 		this.view = new z2.View( this.canvas.width, this.canvas.height );
 
+		// TODO: better way of handling player-sprite and sprite-sprite
+		// collisions
+		// array of entities that can collide with the player
+		this.collidables = [];
+
 		// setup handlers for visibility change events (pause game when focus is
 		// lost)
 		this.paused = false;
@@ -184,7 +189,12 @@ zSquared.game = function( z2 )
 
 		// if we have a scene running, stop it first
 		if( this.scene )
+		{
 			this.scene.stop();
+			// then delete it
+			this.scene.destroy();
+		}
+		// then start the new scene
 		this.scene = new_scene;
 		this.scene.start();
 	};

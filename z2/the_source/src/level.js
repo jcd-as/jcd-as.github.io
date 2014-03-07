@@ -70,8 +70,8 @@ zSquared.level = function( z2 )
 				this.map._updateObjectCollisionMaps();
 
 				// TODO: set the entities for collision groups
-		//		var pcolg = game.player.getComponent( z2.collisionGroupFactory );
-		//		pcolg.entities = [];
+				var pcolg = game.player.getComponent( z2.collisionGroupFactory );
+				pcolg.entities = game.collidables;
 
 				// follow the player sprite
 				game.view.follow_mode = z2.FOLLOW_MODE_PLATFORMER;
@@ -127,9 +127,38 @@ zSquared.level = function( z2 )
 
 			destroy : function()
 			{
-				// TODO: clean up:
-				// - remove all the level-specific assets from the loader
-				// - ...
+				// clean up fields
+				this.playerSys = null;
+				this.catSys = null;
+				this.oldmanSys = null;
+				this.emitterSys = null;
+				this.triggerSys = null;
+				this.areaSys = null;
+				this.alarmSys = null;
+				this.cut = null;
+
+				// remove all the level-specific assets from the loader
+				var i;
+				var assets = json.assets;
+				for( i = 0; i < assets.length; i++ )
+				{
+					var asset = assets[i];
+					z2.loader.deleteAsset( asset.key );
+				}
+				var sounds = json.sounds;
+				for( i = 0; i < sounds.length; i++ )
+				{
+					var sound = sounds[i];
+					z2.loader.deleteAsset( sound.key );
+				}
+				var spritesheets = json.spritesheets;
+				for( i = 0; i < spritesheets.length; i++ )
+				{
+					var ss = spritesheets[i];
+					z2.loader.deleteAsset( ss.key );
+				}
+
+				// TODO: anything else? ...
 			}
 		};
 	};
