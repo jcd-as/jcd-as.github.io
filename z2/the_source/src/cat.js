@@ -3,7 +3,9 @@
 // cat entity code
 //
 // TODO:
-// - add a state machine & more behaviour
+// - move fsm into catBrain component (currently there's only one fsm/controller
+// for ALL cats)
+// - add more behaviour
 // - 
 
 

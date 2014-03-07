@@ -55,6 +55,7 @@ zSquared.level = function( z2 )
 				this.triggerSys = null;
 				this.areaSys = null;
 				this.alarmSys = null;
+				this.jumperSys = null;
 
 				// cut-scene object
 				this.cut = null;
@@ -135,6 +136,7 @@ zSquared.level = function( z2 )
 				this.triggerSys = null;
 				this.areaSys = null;
 				this.alarmSys = null;
+				this.jumperSys = null;
 				this.cut = null;
 
 				// remove all the level-specific assets from the loader

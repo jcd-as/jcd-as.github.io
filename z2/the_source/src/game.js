@@ -28,6 +28,8 @@
 // - implement (more) sloped tiles
 // - keep a "stack" of Scenes in the Game object instead of just the current
 // scene (means having a Pixi Stage per-scene instead of game-wide) ?
+// - need a better way of colliding sprites against each other (currently all in
+// one group which can collide against itself for n^2 performance)
 // - 
 
 (function()
@@ -40,7 +42,7 @@ var HEIGHT = 384;
 window.z2 = zSquared();
 
 // require z2 modules
-z2.require( ["device", "loader", "input", "game", "tiledscene", "audio", "statemachine", "inputreceiver", "message", "level", "splash", "emitter_obj", "trigger", "alarm", "area", "swipe", "fade", "player", "oldman", "cat", "ball"] );
+z2.require( ["device", "loader", "input", "game", "tiledscene", "audio", "statemachine", "inputreceiver", "message", "level", "splash", "emitter_obj", "trigger", "alarm", "area", "swipe", "fade", "player", "oldman", "cat", "ball", "jumper"] );
  
 // create a canvas
 var canvas = z2.createCanvas( WIDTH, HEIGHT, null, true );

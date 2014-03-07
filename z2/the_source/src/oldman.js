@@ -3,6 +3,8 @@
 // old man entity code
 //
 // TODO:
+// - move fsm into Brain component (currently there's only one fsm/controller
+// for ALL oldmen)
 // - 
 
 
