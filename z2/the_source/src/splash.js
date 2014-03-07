@@ -189,12 +189,6 @@ zSquared.splash = function( z2 )
 						z2.loader.deleteAsset( 'logo' );
 						z2.loader.deleteAsset( 'splash' );
 
-						// remove the logo & splash from Pixi
-						game.view.remove( image, true );
-
-						// remove the splash doc from Pixi
-						game.view.remove( this.splash_doc, true );
-
 						// unload assets - 
 						// splash screen sound effects
 						if( z2.device.firefox )
