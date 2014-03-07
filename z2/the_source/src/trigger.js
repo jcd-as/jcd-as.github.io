@@ -266,9 +266,16 @@ zSquared.trigger = function( z2 )
 		var lvl = 'level-' + new_level;
 		var new_x = +props.new_x;
 		var new_y = +props.new_y;
+		var triggered = false;
 		var next = function()
 		{
+			// already triggered?
+			if( triggered )
+				return;
+
 			// TODO: some animation or something?
+
+			triggered = true;
 
 			// queue the level file
 			z2.loader.queueAsset( lvl, 'levels/' + lvl + '.json' );
