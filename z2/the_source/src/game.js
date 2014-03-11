@@ -4,10 +4,10 @@
 // using the z-squared engine
 //
 // TODO:
-// - all the other sprites and entities (Ball, Jumper)
+// x all the other sprites and entities
 // - refactor / improve organization
 // - player 'falling' logic not working (seems to not be 'blocked' by ground
-// every other frame)
+// every other frame because of separation/gravity)
 // - music & sound fx
 // x preloader with progress indicator
 // x splash screen
@@ -25,11 +25,13 @@
 // x support cut-scenes (fade-out/fade-in, swipe, etc)
 // x 'rain' emitter not right on level 2
 // x skip splash screen/menu when 'lvl' query strings is set
-// - implement (more) sloped tiles
+// - implement (more) sloped tiles (22.5 degree slopes? 67.5 degree slopes?)
+// - physics for sloped tiles (gravity & friction) ???
 // - keep a "stack" of Scenes in the Game object instead of just the current
 // scene (means having a Pixi Stage per-scene instead of game-wide) ?
 // - need a better way of colliding sprites against each other (currently all in
 // one group which can collide against itself for n^2 performance)
+// x BUG: no 'loading' image for subsequent levels
 // - 
 
 (function()
@@ -185,7 +187,7 @@ for( var i in key_vals )
 		// TODO:
 		// 'dbg='
         if( decodeURIComponent( key[0] ) === 'dbg' )
-            debug = !!decodeURIComponent( key[1].replace( /\+/g, ' ' ) );
+            debug = !!+decodeURIComponent( key[1].replace( /\+/g, ' ' ) );
 		// 'lvl='
         if( decodeURIComponent( key[0] ) === 'lvl' )
             start_level = +decodeURIComponent( key[1].replace( /\+/g, ' ' ) );
@@ -218,13 +220,17 @@ if( !start_level )
 
 // global game object
 var game = new z2.Game( canvas, force_canvas );
+game.debug = debug;
 
 // TODO: move this to Game class:
 // stats fps display
-z2.stats = new Stats();
-document.body.appendChild( z2.stats.domElement );
-z2.stats.domElement.style.position = 'absolute';
-z2.stats.domElement.style.top = '0px';
+if( debug )
+{
+	z2.stats = new Stats();
+	document.body.appendChild( z2.stats.domElement );
+	z2.stats.domElement.style.position = 'absolute';
+	z2.stats.domElement.style.top = '0px';
+}
 
 // global set-up stuff
 

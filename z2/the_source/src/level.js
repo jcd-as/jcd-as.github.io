@@ -72,7 +72,7 @@ zSquared.level = function( z2 )
 
 				// TODO: set the entities for collision groups
 				var pcolg = game.player.getComponent( z2.collisionGroupFactory );
-				pcolg.entities = game.collidables;
+				pcolg.entities = this.collidables;
 
 				// follow the player sprite
 				game.view.follow_mode = z2.FOLLOW_MODE_PLATFORMER;

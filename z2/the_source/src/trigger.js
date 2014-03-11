@@ -298,6 +298,8 @@ zSquared.trigger = function( z2 )
 			z2.loader.deleteAsset( 'level' );
 			// create the new level
 			var scene = new z2.TiledScene( 'assets/maps/' + lvl + '.json', level_obj );
+			var loading = z2.loader.getAsset( 'loading' );
+			scene.loadProgressImage = loading;
 			game.startScene( scene );
 		};
 

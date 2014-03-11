@@ -61,7 +61,7 @@ zSquared.jumper = function( z2 )
 				switch( brain.fsm.getState() )
 				{
 					case 'idle':
-						// TODO: wait for idle period, then jump
+						// wait for idle period, then jump
 						var now = z2.time.now();
 						if( now - brain.jumpTimer > idlePeriod )
 						{
@@ -80,7 +80,6 @@ zSquared.jumper = function( z2 )
 			},
 			idle: function( e )
 			{
-				// TODO:
 				var sprite = e.getComponent( z2.spriteFactory );
 				sprite.animations.play( 'idle' );
 			},
@@ -89,7 +88,6 @@ zSquared.jumper = function( z2 )
 				// start jump
 				var sprite = e.getComponent( z2.spriteFactory );
 				sprite.animations.play( 'jump' );
-				// TODO: set frame
 				var vc = e.getComponent( z2.velocityFactory );
 				vc.y = -jumpVelocity;
 			},
@@ -157,7 +155,7 @@ zSquared.jumper = function( z2 )
 		anims.play( 'idle' );
 
 		// add to the list of entities that can collide with the player sprite
-		game.collidables.push( jumper );
+		game.scene.collidables.push( jumper );
 
 		return jumper;
 	};

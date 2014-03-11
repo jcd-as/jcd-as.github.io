@@ -61,7 +61,7 @@ zSquared.ball = function( z2 )
 //		anims.play( 'idle' );
 
 		// add to the list of entities that can collide with the player sprite
-		game.collidables.push( ball );
+		game.scene.collidables.push( ball );
 
 		return ball;
 	};
